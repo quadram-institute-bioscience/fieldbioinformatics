@@ -17,7 +17,13 @@ install:
   - conda update -q conda
   - conda info -a
   - conda env create -f environment.yml
+  - conda env create -f environment-medaka.yml
   - conda activate fieldbioinformatics
 
 script:
+  # run the unit test
   - pytest
+  # TODO: run the functional test for the nanopolish pipeline arm
+  # run the functional test for the medaka pipeline branch
+  - conda deactivate && conda activate fieldbioinformatics-medaka
+  - ./test-runner.sh medaka
