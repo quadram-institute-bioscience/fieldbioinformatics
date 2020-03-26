@@ -22,3 +22,4 @@ scripts/illumina/db/*fa.*
 *.pyc
 *.bak
 dist/
+*.egg-info/
