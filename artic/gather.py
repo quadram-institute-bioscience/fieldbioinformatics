@@ -62,11 +62,11 @@ def run(parser, args):
     if not args.fast5_directory and not args.no_fast5s:
         print("Must supply a directory to fast5 files with --fast5-directory")
         print("If you do not want use fast5s with nanopolish use --no-fast5s instead")
-        raise SystemExit
+        raise SystemExit(1)
 
     if isinstance(args.directory, list) and len(args.directory) > 1 and not args.prefix:
         print("Must supply a prefix if gathering multiple directories!", file=sys.stderr)
-        raise SystemExit
+        raise SystemExit(1)
 
     if args.prefix:
         prefix = args.prefix
@@ -147,16 +147,17 @@ def run(parser, args):
     if dfs:
         summary_outfn = "%s_sequencing_summary.txt" % (prefix)
         summaryfh = open(summary_outfn, "w")
-        pd.concat(dfs).to_csv(summaryfh, sep="\t", index=False)
+        pd.concat(dfs, sort=False).to_csv(summaryfh, sep="\t", index=False)
         summaryfh.close()
     else:
         print("No sequencing summary files found. This may be because the run is ongoing. You can proceed but nanopolish index will be slow and may not be able to use all of your data.")
 
     # run nanopolish index on full data set
-    summary_arg = ""
-    if summary_outfn:
-        summary_arg = "-s %s" % (summary_outfn)
-    cmd = ("nanopolish index -d %s %s %s" % (args.fast5_directory, summary_arg, all_fastq_outfn))
-    print(cmd, file=sys.stderr)
-    os.system(cmd)
+    if not args.no_fast5s:
+        summary_arg = ""
+        if summary_outfn:
+            summary_arg = "-s %s" % (summary_outfn)
+        cmd = ("nanopolish index -d %s %s %s" % (args.fast5_directory, summary_arg, all_fastq_outfn))
+        print(cmd, file=sys.stderr)
+        os.system(cmd)
 
