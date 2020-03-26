@@ -10,7 +10,7 @@ def get_nanopolish_header(ref):
     recs = list(SeqIO.parse(open(ref), "fasta"))
     if len (recs) != 1:
         print("FASTA has more than one sequence", file=sys.stderr)
-        raise SystemExit
+        raise SystemExit(1)
 
     return  "%s:%d-%d" % (recs[0].id, 1, len(recs[0])+1)
 
@@ -34,10 +34,10 @@ def run(parser, args):
 
     if not os.path.exists(ref):
         print(colored.red('Scheme reference file not found: ') + ref)
-        raise SystemExit
+        raise SystemExit(1)
     if not os.path.exists(bed):
         print(colored.red('Scheme BED file not found: ') + bed)
-        raise SystemExit
+        raise SystemExit(1)
 
     pools = set([row['PoolName'] for row in read_bed_file(bed)])
 

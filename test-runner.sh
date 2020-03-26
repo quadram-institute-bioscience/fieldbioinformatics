@@ -9,7 +9,7 @@ set -e
 # usage:
 #       ./test-runner.sh [medaka|nanopolish]
 #
-#   specify either medaka or nanopolish to run the respective branch of the pipeline
+#   specify either medaka or nanopolish to run the respective variant of the pipeline
 #
 ###########################################################################################
 # Setup the data, commands and the testing function.
@@ -23,31 +23,36 @@ barcode="03"
 threads=2
 
 # pipeline commands
-gatherCmd="artic gather \
-        --min-length 400 \
-        --max-length 800 \
-        --prefix ${prefix} \
-        --directory ${inputData}"
-
 demultiplexCmd="artic demultiplex \
             --threads ${threads} \
             ${prefix}_fastq_pass.fastq"
 
-nanopolishCmd="nanopolish index \
-            -d ${inputData} \
-            -s ${prefix}_sequencing_summary.txt \
-            ${prefix}_fastq_pass.fastq"
+## nanopolish variant specific
+gatherCmd_n="artic gather \
+        --min-length 400 \
+        --max-length 800 \
+        --prefix ${prefix} \
+        --directory ${inputData} \
+        --fast5-directory ${inputData}/fast5_pass"
 
-minionNanopolishCmd="artic minion \
+minionCmd_n="artic minion \
                 --normalise 200 \
                 --threads ${threads} \
                 --scheme-directory ${primerSchemes} \
                 --read-file ${prefix}_fastq_pass-NB${barcode}.fastq \
-                --nanopolish-read-file ${prefix}_fastq_pass.fastq \
+                --nanopolish-read-file ${prefix}_all.fastq \
                 ${primerScheme} \
                 ${prefix}"
 
-minionMedakaCmd="artic minion \
+## medaka variant specific
+gatherCmd_m="artic gather \
+        --min-length 400 \
+        --max-length 800 \
+        --prefix ${prefix} \
+        --directory ${inputData} \
+        --no-fast5s"
+
+minionCmd_m="artic minion \
             --normalise 200 \
             --threads ${threads} \
             --scheme-directory ${primerSchemes} \
@@ -89,7 +94,7 @@ mkdir tmp && cd tmp || exit
 # check that nanopolish or medaka is specified
 if [ "$1" == "nanopolish" ] || [ "$1" == "medaka" ]; then
     echo -e "${BLUE}Starting tests...${NC}"
-    echo -e "${BLUE} - using the $1 branch${NC}"
+    echo -e "${BLUE} - using the $1 variant${NC}"
     echo
 else
     echo "please specify medaka or nanopolish"
@@ -97,20 +102,34 @@ else
     exit 1
 fi
 
-# collect the reads
-cmdTester $gatherCmd
-
-# demultiplex
-cmdTester $demultiplexCmd
-
-# run nanopolish or medaka branch
+# run the correct variant
 if [ "$1" == "nanopolish" ]
 then
-    cmdTester $nanopolishCmd
-    cmdTester $minionNanopolishCmd
+
+    # collect the reads
+    cmdTester $gatherCmd_n
+
+    # demultiplex
+    cmdTester $demultiplexCmd
+
+    # run the core pipeline with nanopolish
+    cmdTester $minionCmd_n
 else
-    cmdTester $minionMedakaCmd
+
+    # collect the reads
+    cmdTester $gatherCmd_m
+
+    # demultiplex
+    cmdTester $demultiplexCmd
+
+    # run the core pipeline with medaka
+    cmdTester $minionCmd_m
 fi
+
+
+
+
+
 
 ###########################################################################################
 # Check the output and clean up.
