@@ -144,10 +144,11 @@ def run(parser, args):
         print("No sequencing summary files found. This may be because the run is ongoing. You can proceed but nanopolish index will be slow and may not be able to use all of your data.")
 
     # run nanopolish index on full data set
-    summary_arg = ""
-    if summary_outfn:
-        summary_arg = "-s %s" % (summary_outfn)
-    cmd = ("nanopolish index -d %s %s %s" % (args.fast5_directory, summary_arg, all_fastq_outfn))
-    print(cmd, file=sys.stderr)
-    os.system(cmd)
+    if not args.no_fast5s:
+        summary_arg = ""
+        if summary_outfn:
+            summary_arg = "-s %s" % (summary_outfn)
+        cmd = ("nanopolish index -d %s %s %s" % (args.fast5_directory, summary_arg, all_fastq_outfn))
+        print(cmd, file=sys.stderr)
+        os.system(cmd)
 
