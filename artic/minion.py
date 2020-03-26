@@ -116,6 +116,13 @@ def run(parser, args):
 
     cmds.append("bcftools consensus -f %s %s.gz -m %s.coverage_mask.txt -I -o %s.consensus.fasta" % (ref, vcf_file, args.sample, args.sample))
 
+    if args.medaka:
+        method = 'medaka'
+    else:
+        method = 'nanopolish'
+    fasta_header = "%s/ARTIC/%s" % (args.sample, method)
+
+    cmds.append("align_fasta_header %s.consensus.fasta \"%s\"" % (args.sample, fasta_header))
 
             #python nanopore-scripts/expand-cigar.py --bam "$sample".primertrimmed.sorted.bam --fasta $ref | python nanopore-scripts/count-errors.py /dev/stdin > "$sample".errors.txt
 

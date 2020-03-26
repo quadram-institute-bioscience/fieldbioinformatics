@@ -37,7 +37,8 @@ setup(
             'vcfextract=artic.vcfextract:main',
             'artic_vcf_merge=artic.vcf_merge:main',
             'artic_vcf_filter=artic.vcf_filter:main',
-            'artic_make_depth_mask=artic.make_depth_mask:main'
+            'artic_make_depth_mask=artic.make_depth_mask:main',
+            'artic_fasta_header=artic.fasta_header:main'
         ],
     },
     author_email="n.j.loman@bham.ac.uk",
