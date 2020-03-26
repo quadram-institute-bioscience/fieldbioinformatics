@@ -58,11 +58,11 @@ def run(parser, args):
     if not args.fast5_directory and not args.no_fast5s:
         print("Must supply a directory to fast5 files with --fast5-directory")
         print("If you do not want use fast5s with nanopolish use --no-fast5s instead")
-        raise SystemExit
+        raise SystemExit(1)
 
     if isinstance(args.directory, list) and len(args.directory) > 1 and not args.prefix:
         print("Must supply a prefix if gathering multiple directories!", file=sys.stderr)
-        raise SystemExit
+        raise SystemExit(1)
 
     if args.prefix:
         prefix = args.prefix

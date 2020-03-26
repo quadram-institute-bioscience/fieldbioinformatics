@@ -32,7 +32,7 @@ def merge_sites(canonical, alt):
     if canonical['direction'] != alt['direction']:
         print(
             "could not merge alt with different orientation to canonical", file=sys.stderr)
-        raise SystemExit
+        raise SystemExit(1)
 
     # merge the start/ends of the alt with the canonical to get the largest window possible
     if canonical['direction'] == '+':
@@ -90,10 +90,10 @@ def read_bed_file(fn):
                     bedrow['direction'] = '-'
                 else:
                     print("Malformed BED file!", file=sys.stderr)
-                    raise SystemExit
+                    raise SystemExit(1)
             else:
                 print("Malformed BED file!", file=sys.stderr)
-                raise SystemExit
+                raise SystemExit(1)
 
             # grab the direction and set the start and end of the site
             if bedrow['direction'] == '+':
@@ -130,7 +130,7 @@ def overlaps(coords, pos):
 if __name__ == "__main__":
 	if sys.argv[1] not in sets:
 		print("Invalid set")
-		raise SystemExit
+		raise SystemExit(1)
 
 	bedfile = read_bed_file(sys.argv[1])
 
