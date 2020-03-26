@@ -80,7 +80,7 @@ def run(parser, args):
             if os.path.exists("%s.%s.hdf" % (args.sample, p)):
                 os.remove("%s.%s.hdf" % (args.sample, p))
             cmds.append("medaka consensus %s.primertrimmed.%s.sorted.bam %s.%s.hdf" % (args.sample, p, args.sample, p))
-            cmds.append("medaka snp %s %s.%s.hdf %s.%s.vcf" % (ref, args.sample, p, args.sample, p))
+            cmds.append("medaka variant %s %s.%s.hdf %s.%s.vcf" % (ref, args.sample, p, args.sample, p))
 
         #cmds.append("margin_cons_medaka --depth 20 --quality 10 %s %s.primertrimmed.medaka.vcf %s.primertrimmed.sorted.bam > %s.consensus.fasta 2> %s.report.txt" % (ref, args.sample, args.sample, args.sample, args.sample))
     else:
@@ -102,15 +102,14 @@ def run(parser, args):
     cmds.append(merge_vcf_cmd)
 
     if args.medaka:
-        cmds.append("longshot -F -A --no_haps --bam %s.primertrimmed.rg.sorted.bam --ref %s --out %s.longshot.vcf --potential_variants %s.filtered.vcf.gz" % (args.sample, ref, args.sample, args.sample))
-        vcf_file = "%s.longshot.vcf" % (args.sample)
+        cmds.append("longshot -P 0.001 -F -A --no_haps --bam %s.primertrimmed.rg.sorted.bam --ref %s --out %s.longshot.vcf --potential_variants %s.merged.vcf" % (args.sample, ref, args.sample, args.sample))
         cmds.append("artic_vcf_filter --longshot %s.longshot.vcf %s.filtered.vcf" % (args.sample, args.sample))
     else:
-        vcf_file = "%s.filtered.vcf" % (args.sample)
         cmds.append("artic_vcf_filter --nanopolish %s.merged.vcf %s.filtered.vcf" % (args.sample, args.sample))
 
     cmds.append("artic_make_depth_mask %s %s.primertrimmed.rg.sorted.bam %s.coverage_mask.txt" % (ref, args.sample, args.sample))
 
+    vcf_file = "%s.filtered.vcf" % (args.sample,)
     cmds.append("bgzip -f %s" % (vcf_file))
     cmds.append("tabix -p vcf %s.gz" % (vcf_file))
 

@@ -91,9 +91,10 @@ def main():
     parser_gather.add_argument('--max-length', type=int, metavar='max_length', help='remove reads greater than read length')
     parser_gather.add_argument('--min-length', type=int, metavar='min_length', help='remove reads less than read length')
     parser_gather.add_argument('--prefix', help='Prefix for gathered files')
-    parser_gather.add_argument('--run-directory', metavar='run_directory', help='The run directory', default='/var/lib/MinKNOW/data')
+    parser_gather.add_argument('--prompt-directory', metavar='run_directory', help='The run directory for interactive prompts', default='/var/lib/minknown/data')
     parser_gather.add_argument('--fast5-directory', metavar='fast5_directory', help='The directory with fast5 files')
     parser_gather.add_argument('--no-fast5s', action='store_true', help='Do not use fast5s and nanopolish', default=0)
+    parser_gather.add_argument('--limit', type=int, help='Only gather n reads')
     parser_gather.set_defaults(func=run_subtool)
 
     # filter
