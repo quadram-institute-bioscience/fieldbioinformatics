@@ -20,9 +20,9 @@ def collect_depths(bamfile):
 	depths = numpy.zeros(18959, dtype=numpy.int)
 	out, err = p.communicate()
 	for ln in out.split("\n"):
-        	if ln:
-                	contig, pos, depth = ln.split("\t")
-                	depths[int(pos)] = int(depth)
+		if ln:
+			contig, pos, depth = ln.split("\t")
+			depths[int(pos)] = int(depth)
 	return depths
 
 bamfn = "EM_079517_%s_marginalign.sorted.bam" % (sys.argv[4])
