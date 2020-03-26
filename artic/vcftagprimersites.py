@@ -103,16 +103,18 @@ def read_bed_file(fn):
                 bedrow['end'] = int(row[1])
                 bedrow['start'] = int(row[2])
 
-            # if this isn't an alt, add it to the holder and move onto the next row
+            # get the primer base name (removes the alt tag)
             # NOTE: alts are assumed to have an ID ending in "_alt*"
-            if '_alt' not in row[3]:
-                bedFile[row[3]] = bedrow
-                continue
-
-            # strip out the alt from the primer ID
             primerID = row[3].split('_alt')[0]
 
-            # found an alt, merge it with the canonical
+            # check if this primer ID is already in the dict
+            if primerID not in bedFile:
+
+                # add to the bed file and continue
+                bedFile[primerID] = bedrow
+                continue
+
+            # otherwise, we've got a primer ID we've already seen so merge the alt
             mergedSite = merge_sites(bedFile[primerID], bedrow)
 
             # update the bedFile
@@ -121,29 +123,31 @@ def read_bed_file(fn):
     # return the bedFile as a list
     return list(bedFile.values())
 
+
 def overlaps(coords, pos):
-	for v in coords:
-		if pos >= v['start'] and pos <= v['end']:
-			return v
-	return False
+    for v in coords:
+        if pos >= v['start'] and pos <= v['end']:
+            return v
+    return False
+
 
 if __name__ == "__main__":
-	if sys.argv[1] not in sets:
-		print("Invalid set")
-		raise SystemExit(1)
+    if sys.argv[1] not in sets:
+        print("Invalid set")
+        raise SystemExit(1)
 
-	bedfile = read_bed_file(sys.argv[1])
+    bedfile = read_bed_file(sys.argv[1])
 
-	vcf_reader = vcf.Reader(filename=sys.argv[2])
-	vcf_writer = vcf.Writer(sys.stdout, vcf_reader)
-	for record in vcf_reader:
-		v = overlaps(bedfile, record.POS)
-		if v:
-			record.INFO['PRIMER'] = v["Sequence_(5-3')"]
+    vcf_reader = vcf.Reader(filename=sys.argv[2])
+    vcf_writer = vcf.Writer(sys.stdout, vcf_reader)
+    for record in vcf_reader:
+        v = overlaps(bedfile, record.POS)
+        if v:
+            record.INFO['PRIMER'] = v["Sequence_(5-3')"]
 
 #	PP = list(record.INFO)
 #	record.INFO = {}
 #	record.INFO['PP'] = PP
 #	record.INFO['DEPTH'] = depths[record.CHROM][record.POS]
 
-		vcf_writer.write_record(record)
+        vcf_writer.write_record(record)
