@@ -83,7 +83,7 @@ def run(parser, args):
             barcode_directory = paths[-1]
 
             fastq[barcode_directory].extend([root+'/'+f for f in files if f.endswith('.fastq')])
-            summary_files.extend([root+'/'+f for f in files if f.find('_summary.txt') != -1])
+            summary_files.extend([root+'/'+f for f in files if fnmatch.fnmatch(f, '*cing_summary*txt')])
 
     for barcode_directory, fastq in list(fastq.items()):
         if len(fastq):
