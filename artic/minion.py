@@ -76,14 +76,11 @@ def run(parser, args):
 
     # 6) do variant calling using the raw signal alignment
     if args.medaka:
-        if os.path.exists("%s.pool1.hdf" % (args.sample)):
-            os.remove("%s.pool1.hdf" % (args.sample))
-        if os.path.exists("%s.pool2.hdf" % (args.sample)):
-            os.remove("%s.pool2.hdf" % (args.sample))
-
         for p in pools:
+            if os.path.exists("%s.%s.hdf" % (args.sample, p)):
+                os.remove("%s.%s.hdf" % (args.sample, p))
             cmds.append("medaka consensus %s.primertrimmed.%s.sorted.bam %s.%s.hdf" % (args.sample, p, args.sample, p))
-            cmds.append("medaka snp %s %s.%s.hdf %s.primertrimmed.%s.medaka.vcf" % (ref, args.sample, p, args.sample, p))
+            cmds.append("medaka snp %s %s.%s.hdf %s.%s.vcf" % (ref, args.sample, p, args.sample, p))
 
         #cmds.append("margin_cons_medaka --depth 20 --quality 10 %s %s.primertrimmed.medaka.vcf %s.primertrimmed.sorted.bam > %s.consensus.fasta 2> %s.report.txt" % (ref, args.sample, args.sample, args.sample, args.sample))
     else:
@@ -99,19 +96,26 @@ def run(parser, args):
             cmds.append("nanopolish variants --min-flanking-sequence 10 --fix-homopolymers -x %s --progress -t %s --reads %s -o %s.vcf -b %s.trimmed.rg.sorted.bam -g %s -w \"%s\" --ploidy 1 -m 0.1" % (args.max_haplotypes, args.threads, indexed_nanopolish_file, args.sample, args.sample, ref, nanopolish_header))
             cmds.append("nanopolish variants --fix-homopolymers -x %s --progress -t %s --reads %s -o %s.primertrimmed.vcf -b %s.primertrimmed.rg.sorted.bam -g %s -w \"%s\" --ploidy 1 -m 0.1" % (args.max_haplotypes, args.threads, indexed_nanopolish_file, args.sample, args.sample, ref, nanopolish_header))
 
-            merge_vcf_cmd = "artic_vcf_merge %s %s" % (args.sample, bed)
-            for p in pools:
-                merge_vcf_cmd += " %s:%s.%s.vcf" % (p, args.sample, p)
-            cmds.append(merge_vcf_cmd)
+    merge_vcf_cmd = "artic_vcf_merge %s %s" % (args.sample, bed)
+    for p in pools:
+        merge_vcf_cmd += " %s:%s.%s.vcf" % (p, args.sample, p)
+    cmds.append(merge_vcf_cmd)
 
-            cmds.append("artic_vcf_filter %s.merged.vcf %s.filtered.vcf" % (args.sample, args.sample))
+    if args.medaka:
+        cmds.append("longshot -F -A --no_haps --bam %s.primertrimmed.rg.sorted.bam --ref %s --out %s.longshot.vcf --potential_variants %s.filtered.vcf.gz" % (args.sample, ref, args.sample, args.sample))
+        vcf_file = "%s.longshot.vcf" % (args.sample)
+        cmds.append("artic_vcf_filter --longshot %s.longshot.vcf %s.filtered.vcf" % (args.sample, args.sample))
+    else:
+        vcf_file = "%s.filtered.vcf" % (args.sample)
+        cmds.append("artic_vcf_filter --nanopolish %s.merged.vcf %s.filtered.vcf" % (args.sample, args.sample))
 
-            cmds.append("artic_make_depth_mask %s %s.primertrimmed.rg.sorted.bam %s.coverage_mask.txt" % (ref, args.sample, args.sample))
+    cmds.append("artic_make_depth_mask %s %s.primertrimmed.rg.sorted.bam %s.coverage_mask.txt" % (ref, args.sample, args.sample))
 
-            cmds.append("bgzip %s.filtered.vcf" % (args.sample))
-            cmds.append("tabix -p vcf %s.filtered.vcf.gz" % (args.sample))
+    cmds.append("bgzip -f %s" % (vcf_file))
+    cmds.append("tabix -p vcf %s.gz" % (vcf_file))
 
-            cmds.append("bcftools consensus -f %s %s.filtered.vcf.gz -m %s.coverage_mask.txt -I" % (ref, args.sample, args.sample))
+    cmds.append("bcftools consensus -f %s %s.gz -m %s.coverage_mask.txt -I" % (ref, vcf_file, args.sample))
+
 
             #python nanopore-scripts/expand-cigar.py --bam "$sample".primertrimmed.sorted.bam --fasta $ref | python nanopore-scripts/count-errors.py /dev/stdin > "$sample".errors.txt
 
@@ -128,7 +132,8 @@ def run(parser, args):
             #cmds.append("margin_cons %s %s.vcf %s.primertrimmed.sorted.bam a > %s.consensus.fasta" % (ref, args.sample, args.sample, args.sample))
 
     for cmd in cmds:
-        print(colored.green("Running: ") + cmd, file=sys.stderr)
+# print(colored.green("Running: ") + cmd, file=sys.stderr)
+        print(cmd)
         print(cmd, file=logfh)
         if not args.dry_run:
             retval = os.system(cmd)
