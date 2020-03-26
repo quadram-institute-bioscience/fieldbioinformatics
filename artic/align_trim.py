@@ -152,6 +152,9 @@ def go(args):
             else:
                 s.set_tag('RG', 'unmatched')
 
+        if args.remove_incorrect_pairs and not correctly_paired:
+            continue
+
         report = "%s\t%s\t%s\t%s_%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%d" % (s.query_name, s.reference_start, s.reference_end, p1[2]['Primer_ID'], p2[2]['Primer_ID'], p1[2]['Primer_ID'], abs(p1[1]), p2[2]['Primer_ID'], abs(p2[1]), s.is_secondary, s.is_supplementary, p1[2]['start'], p2[2]['end'], correctly_paired)
         if args.report:
             print(report, file=reportfh)
@@ -212,6 +215,7 @@ def main():
     parser.add_argument('--start', action='store_true', help='Trim to start of primers instead of ends')
     parser.add_argument('--no-read-groups', dest='no_read_groups', action='store_true', help='Do not divide reads into groups in SAM output')
     parser.add_argument('--verbose', action='store_true', help='Debug mode')
+    parser.add_argument('--remove-incorrect-pairs', action='store_true')
 
     args = parser.parse_args()
     go(args)
