@@ -52,8 +52,11 @@ def write_fastq(fh, name, rec, qual):
 
 def run(parser, args):
     if not args.directory:
-        directories = os.listdir(args.run_directory)
-        directories = [args.run_directory+'/'+d for d in directories if os.path.isdir(args.run_directory+'/'+d)]
+        if not os.path.exists(args.prompt_directory):
+            print ("Please specify a directory with --directory, artic gather --help for details.")
+            raise SystemExit
+        directories = os.listdir(args.prompt_directory)
+        directories = [args.prompt_directory+'/'+d for d in directories if os.path.isdir(args.prompt_directory+'/'+d)]
         args.directory = [rampart.chooser(directories)]
 
     if not args.fast5_directory and not args.no_fast5s:
@@ -95,6 +98,7 @@ def run(parser, args):
             dups = set()
             uniq = 0
             total = 0    
+            limit_reached = False
 
             for f in fastq:
                 for name, rec, qual in readfq(open(f)):
@@ -110,11 +114,15 @@ def run(parser, args):
                         write_fastq(outfh, name, rec, qual)
                         write_fastq(all_fastq_outfh, name, rec, qual)
 
-#                         SeqIO.write([rec], outfh, "fastq")
-#                         SeqIO.write([rec], all_fastq_outfh, "fastq")
-
                         dups.add(name)
                         uniq += 1
+
+                    if args.limit and uniq >= args.limit:
+                        limit_reached = True
+                        break
+
+                if limit_reached:
+                    break
 
             outfh.close()
 
