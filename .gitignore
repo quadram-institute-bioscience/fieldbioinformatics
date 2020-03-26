@@ -21,3 +21,4 @@ scripts/illumina/db/*fa.*
 
 *.pyc
 *.bak
+dist/
