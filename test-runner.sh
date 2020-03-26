@@ -20,7 +20,7 @@ primerSchemes="../test-data/primer-schemes"
 primerScheme="IturiEBOV/V1"
 prefix="ebov"
 barcode="03"
-threads=8
+threads=2
 
 # pipeline commands
 demultiplexCmd="artic demultiplex \
@@ -40,7 +40,7 @@ minionCmd_n="artic minion \
                 --threads ${threads} \
                 --scheme-directory ${primerSchemes} \
                 --read-file ${prefix}_fastq_pass-NB${barcode}.fastq \
-                --nanopolish-read-file ${prefix}_fastq_pass.fastq \
+                --nanopolish-read-file ${prefix}_all.fastq \
                 ${primerScheme} \
                 ${prefix}"
 
