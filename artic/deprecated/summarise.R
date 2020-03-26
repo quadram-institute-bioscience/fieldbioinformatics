@@ -11,4 +11,3 @@ print(perc)
 print(med)
 print(mod)
 print(ma)
-

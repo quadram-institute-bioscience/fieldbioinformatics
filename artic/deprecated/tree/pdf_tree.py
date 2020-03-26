@@ -176,7 +176,7 @@ def main(args):
 			legend[s['prefec']] = s['prefec__colour']
 		for p in sorted(legend.keys()):
 			ts.legend.add_face(CircleFace(4, legend[p]), column=0)
-			ts.legend.add_face(MyTextFace(p, fsize=6, tight_text=False), column=1)	
+			ts.legend.add_face(MyTextFace(p, fsize=6, tight_text=False), column=1)
 		ts.legend_position=1
 
 	if args.circular:
@@ -203,4 +203,3 @@ parser.add_argument('--legend', action='store_true')
 args = parser.parse_args()
 samples = read_samples(args.metadata)
 main(args)
-

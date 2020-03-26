@@ -17,5 +17,3 @@ for leaf in t.iter_leaves():
 		leaf.name = cols[0]
 
 print t.write()
-
-

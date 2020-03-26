@@ -31,7 +31,7 @@ def go(args):
         p2 = find_primer(bed, s.reference_end, '-')
 
         primer_start = p1[2]['start']
-        # start is the 5' 
+        # start is the 5'
         primer_end = p2[2]['start']
 
         query_align_start = find_query_pos(s, primer_start)
@@ -51,4 +51,3 @@ parser.add_argument('bedfile', help='BED file')
 
 args = parser.parse_args()
 go(args)
-

@@ -32,5 +32,5 @@ for record in vcf_reader:
 		vcf_writer.write_record(record)
 	else:
 		print >>sys.stderr, "Filtering %s" % (record)
-	
-print >>sys.stderr, "Output %s records" % (number_vcf)		
+
+print >>sys.stderr, "Output %s records" % (number_vcf)

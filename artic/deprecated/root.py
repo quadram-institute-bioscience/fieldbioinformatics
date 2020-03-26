@@ -10,5 +10,3 @@ t = Tree(tree)
 t.set_outgroup(t & root)
 
 print t.write()
-
-

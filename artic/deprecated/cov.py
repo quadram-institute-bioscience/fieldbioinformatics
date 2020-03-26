@@ -81,4 +81,3 @@ headers = table[0]
 print "\t".join(headers.keys())
 for row in table:
     print "\t".join([str(s) for s in row.values()])
-

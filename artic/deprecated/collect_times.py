@@ -32,5 +32,3 @@ with open("times/%s.times.txt" % (run,), "w") as fh:
 		strftime('%F %T', localtime(end_time)),
 		end_time - start_time
 	)
-
-

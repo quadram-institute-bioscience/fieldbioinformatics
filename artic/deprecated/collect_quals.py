@@ -23,12 +23,11 @@ for row in runs:
 	fh = open("EM_079517_%s_hq_marginalign.idystats.txt" % (row['batch']))
 	fh.readline()
 	for ln in fh:
-		print "%s\tma\t%s" % (row['batch'], ln), 
+		print "%s\tma\t%s" % (row['batch'], ln),
 	fh.close()
 
 #	fh = open("EM_079517_%s_hq_bwa.idystats.txt" % (row['batch']))
 #	fh.readline()
 #	for ln in fh:
-#		print "%s\tbwa\t%s" % (row['batch'], ln), 
+#		print "%s\tbwa\t%s" % (row['batch'], ln),
 #	fh.close()
-

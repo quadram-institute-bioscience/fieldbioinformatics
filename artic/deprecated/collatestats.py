@@ -12,6 +12,3 @@ for fn in sys.argv[1:]:
 
 	for ln in fh:
 		print "%s\t%s" % (fn, ln),
-
-	
-

@@ -21,4 +21,3 @@ $(PREFIX)-bigtree.png: $(PREFIX)_dist_$(DIST).clusters.txt $(PREFIX)_dist_0.001.
 #pandoc -f markdown -t html report-20151004.md > report-20151004.html
 #sed -i tmp 's/src/width=800 src/' report-20151005.html
 sed --in-place 's/src/width=800 src//' report-20151004.html
-

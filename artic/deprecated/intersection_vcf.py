@@ -21,7 +21,7 @@ def read_vcf(fn):
 	vcf_reader = vcf.Reader(open(fn, 'r'))
 	for record in vcf_reader:
 		if record.POS > MAX_COORD: continue
-		vcfset.add(record.POS)	
+		vcfset.add(record.POS)
 		vcfinfo[record.POS] = record.INFO
 	return vcfset, vcfinfo
 
@@ -41,4 +41,3 @@ for vcffile in sys.argv[2:]:
 		print >>sys.stderr, sample, vcfinfo[sample]
 	print >>sys.stderr, "Missing: %s" % (truthset - vcfset)
 	print >>sys.stderr, "Extra:   %s" % (vcfset - truthset)
-

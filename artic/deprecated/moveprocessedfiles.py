@@ -13,14 +13,9 @@ for root, dirs, files in os.walk(albacore_dir, topdown=False):
 	for name in files:
 		basecalled_files.add(name)
 
-# don't copy already staged files
-for root, dirs, files in os.walk(process_dir, topdown=False):
-	for name in files:
-		basecalled_files.add(name)
-
 for root, dirs, files in os.walk(input_dir, topdown=False):
 	    for name in files:
-			if name not in basecalled_files:
+			if name in basecalled_files:
 				albacore_root = root[len(input_dir):]
 				# move it
 				checkdir = process_dir + '/' + albacore_root
@@ -28,9 +23,5 @@ for root, dirs, files in os.walk(input_dir, topdown=False):
 					os.makedirs(checkdir)
 				movefrom = input_dir + '/' + albacore_root + '/' + name
 				moveto = process_dir + '/' + albacore_root + '/' + name
-				print "Copy %s to %s" % (movefrom, moveto)
-				shutil.copy(movefrom, moveto)
-
-
-
-
+				print "Move %s to %s" % (movefrom, moveto)
+				shutil.move(movefrom, moveto)

@@ -7,4 +7,3 @@ for rec in SeqIO.parse(open(sys.argv[1]), "fasta"):
 	seqstr = '-------------------------------------------' + seqstr + '-------------------------------------------------------------------------------------------------------------'
 	rec.seq = Seq.Seq(seqstr)
 	SeqIO.write([rec], sys.stdout, "fasta")
-

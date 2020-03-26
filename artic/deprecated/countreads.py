@@ -9,9 +9,8 @@ def get_aligned(bamfile):
 	out, err = p.communicate()
 	return int(out)
 
-cmd = "UPDATE runs SET num_reads_align = %s WHERE batch = '%s';" % ( 
+cmd = "UPDATE runs SET num_reads_align = %s WHERE batch = '%s';" % (
      get_aligned("EM_079517_%s_hq_marginalign.sorted.bam" % (sys.argv[3],)),
 	 sys.argv[2]
 )
 print cmd
-

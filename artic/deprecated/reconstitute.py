@@ -25,4 +25,3 @@ parser.add_argument('trimmed', help='Trimmed FASTA GZ file')
 
 args = parser.parse_args()
 go(args)
-

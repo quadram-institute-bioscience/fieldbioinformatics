@@ -45,23 +45,23 @@ def get_meta_new(metadata, big_tree):
 			metadata[each] = {'country': cols[4], 'date': cols[8], 'short_id': cols[2], 'prefec': cols[5], 'subpre': '', 'instrument': 'MinION', 'group': cols[1]}
 		else:
 			metadata[each] = {'country': cols[4], 'date': cols[8], 'short_id': cols[2], 'prefec': cols[5], 'subpre': '', 'instrument': 'other', 'group': cols[1]}
-	return metadata		
+	return metadata
 
-def get_colours(clusters, tree, colours):	
+def get_colours(clusters, tree, colours):
 	#get a list of prefectures for both clusters
 	both_leaves = []
 	for c in [key for key in clusters.keys() if key in ['SL3', 'GN1']]:
 		b = ["'" + clusters[c][0] + "'", "'" + clusters[c][1] + "'"]
 		for a in tree.get_common_ancestor(b).get_leaves():
 			both_leaves.append(a.name[1:-1])
-	
+
 	#count the number of samples of each prefecture and assign colours
 	counts = defaultdict(int)
 	colourDict= {}
 	for each in both_leaves:
 		#print each, metadata[each]['instrument'], metadata[each]['prefec']
 		if metadata[each]['instrument'] == 'MinION':
-			counts[metadata[each]['prefec']] += 1	
+			counts[metadata[each]['prefec']] += 1
 	for n, (key, value) in enumerate(sorted(counts.items(), key=itemgetter(1), reverse=True)):
 		colourDict[key] = colours[n]
 	for each in counts.keys():

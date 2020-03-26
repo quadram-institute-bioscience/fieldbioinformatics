@@ -13,7 +13,7 @@ def get_runs(dataset):
 	if dataset == 'all':
 		cur.execute("select ROWID, * from runs")
 	else:
-        	cur.execute("select ROWID, * from runs where runs.dataset = ?", (dataset,))
+		cur.execute("select ROWID, * from runs where runs.dataset = ?", (dataset,))
         return cur.fetchall()
 
 runs = get_runs(sys.argv[2])
