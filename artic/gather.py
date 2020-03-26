@@ -138,7 +138,7 @@ def run(parser, args):
     if dfs:
         summary_outfn = "%s_sequencing_summary.txt" % (prefix)
         summaryfh = open(summary_outfn, "w")
-        pd.concat(dfs).to_csv(summaryfh, sep="\t", index=False)
+        pd.concat(dfs).to_csv(summaryfh, sep="\t", index=False, sort=False)
         summaryfh.close()
     else:
         print("No sequencing summary files found. This may be because the run is ongoing. You can proceed but nanopolish index will be slow and may not be able to use all of your data.")
