@@ -23,6 +23,7 @@ def vcf_merge(args):
          first_vcf = file_name
 
    vcf_reader = vcf.Reader(filename=first_vcf)
+   vcf_reader.infos["Pool"] = vcf.parser._Format("Pool", 1, "String", "The pool name")
    vcf_writer = vcf.Writer(open(args.prefix+'.merged.vcf', 'w'), vcf_reader)
    vcf_writer_primers = vcf.Writer(open(args.prefix+'.primers.vcf', 'w'), vcf_reader)
 
