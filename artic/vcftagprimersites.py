@@ -40,11 +40,8 @@ def merge_sites(canonical, alt):
     dict
         A dictionary of the merged site, where the dict represents a bed file row
     """
-    # set up a new merged site to return
-    mergedSite = {}
-    mergedSite['Primer_ID'] = canonical['Primer_ID']
-    mergedSite['start'] = canonical['start']
-    mergedSite['end'] = canonical['end']
+    # base the merged site on the canonical
+    mergedSite = canonical
 
     # check the both the canonical and alt are the same direction
     if canonical['direction'] != alt['direction']:
@@ -134,7 +131,7 @@ def read_bed_file(fn):
         bedFile[primerID] = mergedSite
 
     # return the bedFile as a list
-    return list(bedFile.values())
+    return [value for value in bedFile.values()]
 
 
 def overlaps(coords, pos):
