@@ -13,7 +13,7 @@ class NanoporeFilter:
         qual = v.QUAL
         strandbias = float(v.INFO['StrandFisherTest'])
 
-        if qual / total_reads <= 4:
+        if qual / total_reads <= 3:
             return False
 
         strand_fraction_by_strand = v.INFO['SupportFractionByStrand']
