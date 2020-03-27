@@ -1,10 +1,28 @@
 #!/usr/bin/env python
 
+import pandas as pd
 import vcf
 import sys
 import subprocess
 import csv
 from collections import defaultdict
+
+
+def getPrimerDirection(primerID):
+    """Infer the primer direction based on it's ID containing LEFT/RIGHT
+
+    Parameters
+    ----------
+    primerID : string
+        The primer ID from the 4th field of the primer scheme
+    """
+    if 'LEFT' in primerID:
+        return '+'
+    elif 'RIGHT':
+        return '-'
+    else:
+        print("LEFT/RIGHT must be specified in Primer ID", file=sys.stderr)
+        raise SystemExit(1)
 
 
 def merge_sites(canonical, alt):
@@ -62,63 +80,58 @@ def read_bed_file(fn):
         A list of dictionaries, where each dictionary contains a row of the parsed bedfile.
         The available dictionary keys are - Primer_ID, direction, start, end
     """
-    # use a dictionary of dictionaries to hold all the rows in the bed file by primer ID
-    # this can then be used to collapse the alts into canonical primer sites
-    bedFile = {}
 
-    with open(fn) as csvfile:
-        reader = csv.reader(csvfile, dialect='excel-tab')
-        for row in reader:
+    # read the primer scheme into a pandas dataframe and run type, length and null checks
+    primers = pd.read_csv(fn, sep='\t', header=None,
+                          names=['chrom', 'start', 'end',
+                                 'Primer_ID', 'PoolName'],
+                          dtype={'chrom': str, 'start': int, 'end': int,
+                                 'Primer_ID': str, 'PoolName': str},
+                          usecols=(0, 1, 2, 3, 4),
+                          skiprows=0)
+    if len(primers.index) < 1:
+        print("primer scheme file is empty", file=sys.stderr)
+        raise SystemExit(1)
+    if primers.isnull().sum().sum():
+        print("malformed primer scheme file", file=sys.stderr)
+        raise SystemExit(1)
 
-            # remove empty fields
-            row = list(filter(None, row))
+    # compute the direction
+    primers['direction'] = primers.apply(
+        lambda row: getPrimerDirection(row.Primer_ID), axis=1)
 
-            # read row of bed file into a dictionary
-            bedrow = {}
-            bedrow['Primer_ID'] = row[3]
-            bedrow['PoolName'] = row[4]
+    # separate alt primers into a new dataframe
+    altFilter = primers['Primer_ID'].str.contains('_alt')
+    alts = pd.DataFrame(
+        columns=('chrom', 'start', 'end', 'Primer_ID', 'PoolName', 'direction'))
+    alts = pd.concat([alts, primers[altFilter]])
+    primers = primers.drop(primers[altFilter].index.values)
 
-            # check the bed format
-            if len(row) >= 6:
-                # new style bed
-                bedrow['direction'] = row[5]
-            elif len(row) == 5:
-                # old style without directory
-                if 'LEFT' in row[3]:
-                    bedrow['direction'] = '+'
-                elif 'RIGHT' in row[3]:
-                    bedrow['direction'] = '-'
-                else:
-                    print("Malformed BED file!", file=sys.stderr)
-                    raise SystemExit(1)
-            else:
-                print("Malformed BED file!", file=sys.stderr)
-                raise SystemExit(1)
+    # convert the primers dataframe to dictionary, indexed by Primer_ID
+    #  - verify_integrity is used to prevent duplicate Primer_IDs being processed
+    bedFile = primers.set_index('Primer_ID', drop=False,
+                                verify_integrity=True).T.to_dict()
 
-            # grab the direction and set the start and end of the site
-            if bedrow['direction'] == '+':
-                bedrow['end'] = int(row[2])
-                bedrow['start'] = int(row[1])
-            else:
-                bedrow['end'] = int(row[1])
-                bedrow['start'] = int(row[2])
+    # if there were no alts, return the bedfile as a list of dicts
+    if len(alts.index) == 0:
+        return list(bedFile.values())
 
-            # get the primer base name (removes the alt tag)
-            # NOTE: alts are assumed to have an ID ending in "_alt*"
-            primerID = row[3].split('_alt')[0]
+    # merge alts
+    for _, row in alts.iterrows():
+        primerID = row['Primer_ID'].split('_alt')[0]
 
-            # check if this primer ID is already in the dict
-            if primerID not in bedFile:
+        # check the bedFile if another version of this primer exists
+        if primerID not in bedFile:
 
-                # add to the bed file and continue
-                bedFile[primerID] = bedrow
-                continue
+            # add to the bed file and continue
+            bedFile[primerID] = row
+            continue
 
-            # otherwise, we've got a primer ID we've already seen so merge the alt
-            mergedSite = merge_sites(bedFile[primerID], bedrow)
+        # otherwise, we've got a primer ID we've already seen so merge the alt
+        mergedSite = merge_sites(bedFile[primerID], row)
 
-            # update the bedFile
-            bedFile[primerID] = mergedSite
+        # update the bedFile
+        bedFile[primerID] = mergedSite
 
     # return the bedFile as a list
     return list(bedFile.values())
