@@ -45,6 +45,7 @@ def merge_sites(canonical, alt):
     mergedSite['Primer_ID'] = canonical['Primer_ID']
     mergedSite['start'] = canonical['start']
     mergedSite['end'] = canonical['end']
+    mergedSite['PoolName'] = canonical['PoolName']
 
     # check the both the canonical and alt are the same direction
     if canonical['direction'] != alt['direction']:
@@ -134,7 +135,7 @@ def read_bed_file(fn):
         bedFile[primerID] = mergedSite
 
     # return the bedFile as a list
-    return list(bedFile.values())
+    return [value for value in bedFile.values()]
 
 
 def overlaps(coords, pos):
