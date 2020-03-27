@@ -40,12 +40,8 @@ def merge_sites(canonical, alt):
     dict
         A dictionary of the merged site, where the dict represents a bed file row
     """
-    # set up a new merged site to return
-    mergedSite = {}
-    mergedSite['Primer_ID'] = canonical['Primer_ID']
-    mergedSite['start'] = canonical['start']
-    mergedSite['end'] = canonical['end']
-    mergedSite['PoolName'] = canonical['PoolName']
+    # base the merged site on the canonical
+    mergedSite = canonical
 
     # check the both the canonical and alt are the same direction
     if canonical['direction'] != alt['direction']:
