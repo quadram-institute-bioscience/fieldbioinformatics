@@ -4,4 +4,5 @@ nav:
   - Home: index.md
   - Installation: installation.md
   - Quick start: quick-start.md
+  - FAQ: faq.md
 theme: readthedocs
