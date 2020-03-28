@@ -16,15 +16,13 @@ class NanoporeFilter:
         if qual / total_reads <= 3:
             return False
 
-        strand_fraction_by_strand = v.INFO['SupportFractionByStrand']
-        if float(strand_fraction_by_strand[0]) < 0.5: 
-            return False
+        if v.is_indel:
+            strand_fraction_by_strand = v.INFO['SupportFractionByStrand']
+            if float(strand_fraction_by_strand[0]) < 0.5: 
+                return False
 
-        if float(strand_fraction_by_strand[1]) < 0.5:
-            return False
-
-        #if strandbias >= 100:
-        #    return False
+            if float(strand_fraction_by_strand[1]) < 0.5:
+                return False
 
         if total_reads < 20:
             return False

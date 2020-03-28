@@ -81,19 +81,28 @@ def trim(args, cigar, s, start_pos, end):
     if args.verbose:
         print("New pos: %s" % (s.pos), file=sys.stderr)
 
+    if not end and cigar[0][0] == 2:
+        return False
+
     if end:
         cigar.append((4, eaten))
     else:
         cigar.insert(0, (4, eaten))
     oldcigarstring = s.cigarstring
+    
+    #if cigar[0][0] == 2:
+    #    s.cigartuples = cigar[1:]
+    #else:
     s.cigartuples = cigar
-
-    #print >>sys.stderr,  s.query_name, oldcigarstring[0:50], s.cigarstring[0:50]
+    return True
 
 def find_primer(bed, pos, direction):
     from operator import itemgetter
 
-    closest = min([(abs(p['start'] - pos), p['start'] - pos, p) for p in bed if p['direction'] == direction], key=itemgetter(0))
+    if direction == '+':
+        closest = min([(abs(p['start'] - pos), p['start'] - pos, p) for p in bed if p['direction'] == direction], key=itemgetter(0))
+    else:
+        closest = min([(abs(p['end'] - pos), p['end'] - pos, p) for p in bed if p['direction'] == direction], key=itemgetter(0))
     return closest
 
 def is_correctly_paired(p1, p2):
@@ -171,15 +180,15 @@ def go(args):
                 primer_position = p1[2]['end']
 
             if s.reference_start < primer_position:
-                trim(args, cigar, s, primer_position, 0)
+                if not trim(args, cigar, s, primer_position, 0): continue
             else:
                 if args.verbose:
                     print("ref start %s >= primer_position %s" % (s.reference_start, primer_position), file=sys.stderr)
 
             if args.start:
-                primer_position = p2[2]['start']
-            else:
                 primer_position = p2[2]['end']
+            else:
+                primer_position = p2[2]['start']
 
             if s.reference_end > primer_position:
                 trim(args, cigar, s, primer_position, 1)

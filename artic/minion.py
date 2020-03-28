@@ -95,7 +95,7 @@ def run(parser, args):
             indexed_nanopolish_file = read_file
 
             for p in pools:
-               cmds.append("nanopolish variants -x %s --progress -t %s --reads %s -o %s.%s.vcf -b %s.trimmed.rg.sorted.bam -g %s -w \"%s\" --ploidy 1 -m 0.15 --read-group %s" % (args.max_haplotypes, args.threads, indexed_nanopolish_file, args.sample, p, args.sample, ref, nanopolish_header, p))
+               cmds.append("nanopolish variants --min-flanking-sequence 10 -x %s --progress -t %s --reads %s -o %s.%s.vcf -b %s.trimmed.rg.sorted.bam -g %s -w \"%s\" --ploidy 1 -m 0.15 --read-group %s" % (args.max_haplotypes, args.threads, indexed_nanopolish_file, args.sample, p, args.sample, ref, nanopolish_header, p))
 
             #cmds.append("nanopolish variants --min-flanking-sequence 10 --fix-homopolymers -x %s --progress -t %s --reads %s -o %s.vcf -b %s.trimmed.rg.sorted.bam -g %s -w \"%s\" --ploidy 1 -m 0.1" % (args.max_haplotypes, args.threads, indexed_nanopolish_file, args.sample, args.sample, ref, nanopolish_header))
             #cmds.append("nanopolish variants --fix-homopolymers -x %s --progress -t %s --reads %s -o %s.primertrimmed.vcf -b %s.primertrimmed.rg.sorted.bam -g %s -w \"%s\" --ploidy 1 -m 0.1" % (args.max_haplotypes, args.threads, indexed_nanopolish_file, args.sample, args.sample, ref, nanopolish_header))
