@@ -1,4 +1,10 @@
-#Adding this repository as a submodule of another
+# FAQ
+
+### Lab-on-an-SSD
+
+Please refer to [the ARTIC website](https://artic.network/lab-on-an-SSD) for more information about lab-on-SSD.
+
+### Adding this repository as a submodule of another
 
 Within the parent repo add the submodule:
 

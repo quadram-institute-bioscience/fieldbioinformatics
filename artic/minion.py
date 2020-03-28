@@ -45,6 +45,13 @@ def run(parser, args):
 
     nanopolish_header = get_nanopolish_header(ref)
 
+    if not args.medaka:
+        if not args.fast5_directory or not args.sequencing_summary:
+              print(colored.red('Must specify FAST5 directory and sequencing summary for nanopolish mode.'))
+              raise SystemExit(1)
+        
+        cmds.append("nanopolish index -s %s -d %s %s" % (args.sequencing_summary, args.fast5_directory, args.read_file,))
+
     # 3) index the ref & align with bwa"
     if not args.bwa:
         cmds.append("minimap2 -a -x map-ont -t %s %s %s | samtools sort -o %s.sorted.bam -" % (args.threads, ref, read_file, args.sample))
@@ -85,10 +92,7 @@ def run(parser, args):
         #cmds.append("margin_cons_medaka --depth 20 --quality 10 %s %s.primertrimmed.medaka.vcf %s.primertrimmed.sorted.bam > %s.consensus.fasta 2> %s.report.txt" % (ref, args.sample, args.sample, args.sample, args.sample))
     else:
         if not args.skip_nanopolish:
-            if args.nanopolish_read_file:
-                    indexed_nanopolish_file = args.nanopolish_read_file
-            else:
-                    indexed_nanopolish_file = read_file
+            indexed_nanopolish_file = read_file
 
             for p in pools:
                cmds.append("nanopolish variants -x %s --progress -t %s --reads %s -o %s.%s.vcf -b %s.trimmed.rg.sorted.bam -g %s -w \"%s\" --ploidy 1 -m 0.15 --read-group %s" % (args.max_haplotypes, args.threads, indexed_nanopolish_file, args.sample, p, args.sample, ref, nanopolish_header, p))

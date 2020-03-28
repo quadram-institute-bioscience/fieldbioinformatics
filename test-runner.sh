@@ -40,7 +40,8 @@ minionCmd_n="artic minion \
                 --threads ${threads} \
                 --scheme-directory ${primerSchemes} \
                 --read-file ${prefix}_fastq_pass-NB${barcode}.fastq \
-                --nanopolish-read-file ${prefix}_all.fastq \
+                --fast5-directory ${inputData}/fast5_pass \
+                --sequencing-summary ${inputData}/lab-on-an-ssd_20190830_160932_AAQ411_minion_sequencing_run_EBOV_Amplicons_flongle_sequencing_summary.txt \
                 ${primerScheme} \
                 ${prefix}"
 
