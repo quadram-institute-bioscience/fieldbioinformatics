@@ -1,0 +1,29 @@
+v1.1.0-rc1:
+===========
+
+Support for read groups:
+ Support ‘pool’ read groups taken from BED file, e.g.:
+  - nCoV2019_1
+  - nCoV2019_2
+ These can be helpfully viewed in the Tablet viewer.
+ Do variant calling separately on each group, permits detection of incongruent mutations e.g. from contamination
+
+Update to nanopolish 0.12.5 fo more informative VCF output
+Change nanopore filtering to support new VCF output (e.g. strand-bias)
+
+Support indels with bcftools consensus
+Longshot added to Medaka to permit filter VCF on depth
+
+New workflow model - all commands run "one per sample", script nanopolish index
+
+Add 'artic gupplyplex' for support for demultiplexed Guppy output to replace 'artic gather'
+
+Fix for align_trim to remove erroneous CIGAR strains that can cause medaka to fail
+
+Support for amplicons v3 format file (Will Rowe)
+
+Test suite (Will Rowe)
+
+Documentation (Will Rowe)
+
+Remove old deprecated code (Will Rowe)
