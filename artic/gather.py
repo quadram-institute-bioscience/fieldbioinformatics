@@ -3,6 +3,7 @@ from Bio import SeqIO
 import tempfile
 import os
 import glob
+import fnmatch
 import shutil
 import pandas as pd
 from collections import defaultdict

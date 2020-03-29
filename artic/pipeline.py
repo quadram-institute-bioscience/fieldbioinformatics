@@ -29,6 +29,8 @@ def run_subtool(parser, args):
         from . import filter as submodule
     if args.command == 'run':
         from . import run as submodule
+    if args.command == 'guppyplex':
+        from . import guppyplex as submodule
 
     # run the chosen submodule.
     submodule.run(parser, args)

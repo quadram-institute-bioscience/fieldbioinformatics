@@ -67,5 +67,3 @@ def run(parser, args):
 
             outfh.close()
             print(f"{fastq_outfn}\t{len(dups)}")
-
-
