@@ -21,6 +21,8 @@ def run_subtool(parser, args):
         from . import minion as submodule
     if args.command == 'gather':
         from . import gather as submodule
+    if args.command == 'guppyplex':
+        from . import guppyplex as submodule
     if args.command == 'rampart':
         from . import rampart as submodule
     if args.command == 'filter':
@@ -73,14 +75,17 @@ def main():
     parser_minion.add_argument('scheme', metavar='scheme', help='The name of the scheme.')
     parser_minion.add_argument('sample', metavar='sample', help='The name of the sample.')
     parser_minion.add_argument('--medaka', dest='medaka', action='store_true', help='Use medaka instead of nanopolish for variants')
-    parser_minion.add_argument('--minimap2', dest='minimap2', action='store_true', help='Use minimap2 instead of bwa')
+    parser_minion.add_argument('--minimap2', dest='minimap2', default=True, action='store_true', help='Use minimap2 (default)')
+    parser_minion.add_argument('--bwa', dest='bwa', action='store_true', help='Use bwa instead of minimap2')
     parser_minion.add_argument('--normalise', dest='normalise', type=int, default=100, help='Normalise down to moderate coverage to save runtime.')
     parser_minion.add_argument('--threads', type=int, default=8, help='Number of threads')
     parser_minion.add_argument('--scheme-directory', metavar='scheme_directory', default='/artic/schemes', help='Default scheme directory')
     parser_minion.add_argument('--max-haplotypes', type=int, default=1000000, metavar='max_haplotypes', help='max-haplotypes value for nanopolish')
     parser_minion.add_argument('--read-file', metavar='read_file', help='Use alternative FASTA/FASTQ file to <sample>.fasta')
-    parser_minion.add_argument('--nanopolish-read-file', metavar='nanopolish_read_file', help='Use alternative read file (previously indexed)')
+    parser_minion.add_argument('--fast5-directory', help='FAST5 Directory')
+    parser_minion.add_argument('--sequencing-summary', help='Path to Guppy sequencing summary')
     parser_minion.add_argument('--skip-nanopolish', action='store_true')
+    parser_minion.add_argument('--dry-run', action='store_true')
     parser_minion.set_defaults(func=run_subtool)
 
     # gather
@@ -89,8 +94,25 @@ def main():
     parser_gather.add_argument('--max-length', type=int, metavar='max_length', help='remove reads greater than read length')
     parser_gather.add_argument('--min-length', type=int, metavar='min_length', help='remove reads less than read length')
     parser_gather.add_argument('--prefix', help='Prefix for gathered files')
-    parser_gather.add_argument('--run-directory', metavar='run_directory', help='The run directory', default='/var/lib/MinKNOW/data')
+    parser_gather.add_argument('--prompt-directory', metavar='run_directory', help='The run directory for interactive prompts', default='/var/lib/minknown/data')
+    parser_gather.add_argument('--fast5-directory', metavar='fast5_directory', help='The directory with fast5 files')
+    parser_gather.add_argument('--no-fast5s', action='store_true', help='Do not use fast5s and nanopolish', default=0)
+    parser_gather.add_argument('--limit', type=int, help='Only gather n reads')
     parser_gather.set_defaults(func=run_subtool)
+
+    # guppyplex
+    # This is a workflow that aggregates the previous gather and demultiplex steps into a single task.
+    # This is making an assumption that the results from MinKnow demultiplex are good-enough.
+    parser_guppyplex = subparsers.add_parser('guppyplex', help='Aggregate pre-demultiplexed reads from MinKNOW/Guppy')
+    parser_guppyplex.add_argument('--directory', metavar='directory', help='Basecalled and demultiplexed (guppy) results directory', required=True)
+    parser_guppyplex.add_argument('--max-length', type=int, metavar='max_length', help='remove reads greater than read length')
+    parser_guppyplex.add_argument('--min-length', type=int, metavar='min_length', help='remove reads less than read length')
+    parser_guppyplex.add_argument('--quality', type=float, metavar='quality', default=7, help='remove reads against this quality filter')
+    parser_guppyplex.add_argument('--sample', type=float, metavar='sample', default=1, help='sampling frequency for random sample of sequence to reduce excess')
+    parser_guppyplex.add_argument('--skip-quality-check', action='store_true', help='Do not filter on quality score (speeds up)')
+    parser_guppyplex.add_argument('--prefix', help='Prefix for guppyplex files')
+    parser_guppyplex.add_argument('--run-directory', metavar='run_directory', help='The run directory', default='/var/lib/MinKNOW/data')
+    parser_guppyplex.set_defaults(func=run_subtool)
 
     # filter
     parser_filter = subparsers.add_parser('filter', help='Filter FASTQ files by length')

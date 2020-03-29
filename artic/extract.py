@@ -28,7 +28,7 @@ def run(parser, args):
 		flowcells.add(read_flowcell_id)
 		if len(flowcells) != 1:
 			print("ABORTED: More than one flowcell found in dataset: %s" % (flowcells,), file=sys.stderr)
-			raise SystemExit
+			raise SystemExit(1)
 
 		#if flowcell_id != read_flowcell_id:
 		#	print >>sys.stderr, "Skipping read from flowcell: %s" % (read_flowcell_id)

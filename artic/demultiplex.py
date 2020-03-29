@@ -27,6 +27,18 @@ def run(parser, args):
 		if newfn.endswith('.gz'):
 			os.system("gunzip -f %s" % (newfn,))
 
+		# build nanopolish index files for the demultiplexed reads if a readdb file exists for the input file
+		master_readdb_fn = "%s.index.readdb" % (args.fasta)
+		if os.path.exists(master_readdb_fn):
+			# first we build the .fai files intentionally WITHOUT the fast5 directory argument
+			# this will print an error that we ignore
+			cmd = ("nanopolish index %s 2>/dev/null" % newfn)
+			print(cmd, file=sys.stderr)
+			os.system(cmd)
+
+			new_readdb = "%s.index.readdb" % (newfn)
+			os.symlink(master_readdb_fn, new_readdb)
+
 	if not args.no_remove_directory:
 		os.rmdir(tmpdir)
 

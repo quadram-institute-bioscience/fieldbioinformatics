@@ -16,7 +16,7 @@ def chooser(directories):
 		try:
 			choice_number = int(choice)
 			if choice_number == 0:
-				raise SystemExit
+				raise SystemExit(1)
 			path = directories[choice_number-1]
 			break
 		except Exception:
