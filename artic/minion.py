@@ -54,10 +54,10 @@ def run(parser, args):
 
     # 3) index the ref & align with bwa"
     if not args.bwa:
-        cmds.append("minimap2 -a -x map-ont -t %s %s %s | samtools sort -o %s.sorted.bam -" % (args.threads, ref, read_file, args.sample))
+        cmds.append("minimap2 -a -x map-ont -t %s %s %s | samtools view -bS -F 4 - | samtools sort -o %s.sorted.bam -" % (args.threads, ref, read_file, args.sample))
     else:
         cmds.append("bwa index %s" % (ref,))
-        cmds.append("bwa mem -t %s -x ont2d %s %s | samtools view -bS - | samtools sort -o %s.sorted.bam -" % (args.threads, ref, read_file, args.sample))
+        cmds.append("bwa mem -t %s -x ont2d %s %s | samtools view -bS -F 4 - | samtools sort -o %s.sorted.bam -" % (args.threads, ref, read_file, args.sample))
     cmds.append("samtools index %s.sorted.bam" % (args.sample,))
 
     # 4) trim the alignments to the primer start sites and normalise the coverage to save time
@@ -88,8 +88,6 @@ def run(parser, args):
                 os.remove("%s.%s.hdf" % (args.sample, p))
             cmds.append("medaka consensus %s.primertrimmed.%s.sorted.bam %s.%s.hdf" % (args.sample, p, args.sample, p))
             cmds.append("medaka variant %s %s.%s.hdf %s.%s.vcf" % (ref, args.sample, p, args.sample, p))
-
-        #cmds.append("margin_cons_medaka --depth 20 --quality 10 %s %s.primertrimmed.medaka.vcf %s.primertrimmed.sorted.bam > %s.consensus.fasta 2> %s.report.txt" % (ref, args.sample, args.sample, args.sample, args.sample))
     else:
         if not args.skip_nanopolish:
             indexed_nanopolish_file = read_file
@@ -104,17 +102,19 @@ def run(parser, args):
 
     if args.medaka:
         cmds.append("longshot -P 0.001 -F -A --no_haps --bam %s.primertrimmed.rg.sorted.bam --ref %s --out %s.longshot.vcf --potential_variants %s.merged.vcf" % (args.sample, ref, args.sample, args.sample))
-        cmds.append("artic_vcf_filter --longshot %s.longshot.vcf %s.filtered.vcf" % (args.sample, args.sample))
+        cmds.append("artic_vcf_filter --longshot %s.longshot.vcf %s.pass.vcf %s.fail.vcf" % (args.sample, args.sample, args.sample))
     else:
-        cmds.append("artic_vcf_filter --nanopolish %s.merged.vcf %s.filtered.vcf" % (args.sample, args.sample))
+        cmds.append("artic_vcf_filter --nanopolish %s.merged.vcf %s.pass.vcf %s.fail.vcf" % (args.sample, args.sample, args.sample))
 
     cmds.append("artic_make_depth_mask %s %s.primertrimmed.rg.sorted.bam %s.coverage_mask.txt" % (ref, args.sample, args.sample))
 
-    vcf_file = "%s.filtered.vcf" % (args.sample,)
+    vcf_file = "%s.pass.vcf" % (args.sample,)
     cmds.append("bgzip -f %s" % (vcf_file))
     cmds.append("tabix -p vcf %s.gz" % (vcf_file))
 
-    cmds.append("bcftools consensus -f %s %s.gz -m %s.coverage_mask.txt -I -o %s.consensus.fasta" % (ref, vcf_file, args.sample, args.sample))
+    # artic_mask must be run before bcftools consensus
+    cmds.append("artic_mask %s %s.coverage_mask.txt %s.fail.vcf %s.preconsensus.fasta" % (ref, args.sample, args.sample, args.sample))
+    cmds.append("bcftools consensus -f %s.preconsensus.fasta %s.gz -m %s.coverage_mask.txt -o %s.consensus.fasta" % (args.sample, vcf_file, args.sample, args.sample))
 
     if args.medaka:
         method = 'medaka'
@@ -124,23 +124,8 @@ def run(parser, args):
 
     cmds.append("artic_fasta_header %s.consensus.fasta \"%s\"" % (args.sample, fasta_header))
 
-            #python nanopore-scripts/expand-cigar.py --bam "$sample".primertrimmed.sorted.bam --fasta $ref | python nanopore-scripts/count-errors.py /dev/stdin > "$sample".errors.txt
-
-            # 7) do phasing
-            #nanopolish phase-reads --reads $sample.fasta --bam $sample.trimmed.sorted.bam --genome $ref $sample.vcf
-
-            # 8) variant frequency plot
-            #cmds.append("vcfextract %s > %s.variants.tab" % (args.sample, args.sample))
-
-            # 8) filter the variants and produce a consensus
-            # here we use the vcf file without primer binding site trimming (to keep nanopolish happy with flanks)
-            # but we use the primertrimmed sorted bam file in order that primer binding sites do not count
-            # for the depth calculation to determine any low coverage sites that need masking
-            #cmds.append("margin_cons %s %s.vcf %s.primertrimmed.sorted.bam a > %s.consensus.fasta" % (ref, args.sample, args.sample, args.sample))
-
     for cmd in cmds:
-# print(colored.green("Running: ") + cmd, file=sys.stderr)
-        print(cmd)
+        print(colored.green("Running: ") + cmd, file=sys.stderr)
         print(cmd, file=logfh)
         if not args.dry_run:
             retval = os.system(cmd)

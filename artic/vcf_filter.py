@@ -53,7 +53,8 @@ class LongshotFilter:
 
 def go(args):
     vcf_reader = vcf.Reader(filename=args.inputvcf)
-    vcf_writer = vcf.Writer(open(args.outputvcf, 'w'), vcf_reader)
+    vcf_writer = vcf.Writer(open(args.output_pass_vcf, 'w'), vcf_reader)
+    vcf_writer_filtered = vcf.Writer(open(args.output_fail_vcf, 'w'), vcf_reader)
     if args.nanopolish:
         filter = NanoporeFilter()
     elif args.medaka:
@@ -65,8 +66,10 @@ def go(args):
         raise SystemExit
 
     for v in vcf_reader:
-      if filter.check_filter(v):
-          vcf_writer.write_record(v)
+        if filter.check_filter(v):
+            vcf_writer.write_record(v)
+        else:
+            vcf_writer_filtered.write_record(v)
 
 def main():
     import argparse
@@ -76,7 +79,8 @@ def main():
     parser.add_argument('--medaka', action='store_true')
     parser.add_argument('--longshot', action='store_true')
     parser.add_argument('inputvcf')
-    parser.add_argument('outputvcf')
+    parser.add_argument('output_pass_vcf')
+    parser.add_argument('output_fail_vcf')
 
     args = parser.parse_args()
 
