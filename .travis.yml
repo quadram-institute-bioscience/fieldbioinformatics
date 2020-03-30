@@ -27,4 +27,5 @@ script:
   - ./test-runner.sh nanopolish
   # run the functional test for the medaka pipeline variant
   - conda deactivate && conda activate fieldbioinformatics-medaka
+  - python setup.py install
   - ./test-runner.sh medaka
