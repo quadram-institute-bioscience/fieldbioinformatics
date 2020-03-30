@@ -46,6 +46,6 @@ python setup.py install
 
 ## Documentation
 
-For documentation and getting started, see the [SOP on the artic website](https://artic.network/ncov-2019/ncov2019-bioinformatics-sop-beta.html).
+For documentation and getting started, see the [SOP on the artic website](https://artic.network/ncov-2019/ncov2019-bioinformatics-sop.html).
 
 Documentation via [read the docs](http://artic.readthedocs.io/en/latest/?badge=latest) is being written and will be available soon.
