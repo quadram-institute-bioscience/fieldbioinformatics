@@ -24,45 +24,47 @@ from random import random
 
 
 def get_read_mean_quality(record):
-	return -10 * log10((10 ** (pd.Series(record.letter_annotations["phred_quality"]) / -10)).mean())
+    return -10 * log10((10 ** (pd.Series(record.letter_annotations["phred_quality"]) / -10)).mean())
 
 
 def run(parser, args):
-	fastq = defaultdict(list)
-	files = os.listdir(args.directory)
-	fastq[args.directory].extend([os.path.join(args.directory, f) for f in files if fnmatch.fnmatch(f, '*.fastq*')])
+    fastq = defaultdict(list)
+    files = os.listdir(args.directory)
+    fastq[args.directory].extend([os.path.join(args.directory, f) for f in files if fnmatch.fnmatch(f, '*.fastq*')])
 
-	for barcode_directory, fastq in list(fastq.items()):
-		if len(fastq):
-			fastq_outfn = "%s_%s.fastq" % (args.prefix, os.path.basename(barcode_directory))
-			outfh = open(fastq_outfn, "w")
-			print("Processing %s files in %s" % (len(fastq), barcode_directory), file=sys.stderr)
+    for barcode_directory, fastq in list(fastq.items()):
+        if len(fastq):
+            fastq_outfn = "%s_%s.fastq" % (args.prefix, os.path.basename(barcode_directory))
+            outfh = open(fastq_outfn, "w")
+            print("Processing %s files in %s" % (len(fastq), barcode_directory), file=sys.stderr)
 
-			dups = set()
+            dups = set()
 
-			for file in fastq:
-				encoding = guess_type(file)[1]
-				_open = open
-				# only accommodating gzip compression at present
-				if encoding == "gzip":
-					_open = partial(gzip.open, mode="rt")
-				with _open(file) as f:
-					for rec in SeqIO.parse(f, "fastq"):
-						if args.max_length and len(rec) > args.max_length:
-							continue
-						if args.min_length and len(rec) < args.min_length:
-							continue
-						if get_read_mean_quality(rec) < args.quality:
-							continue
-						r = random()
-						if r >= args.sample:
-							continue
+            for file in fastq[0:len(fastq)-2]:
+                encoding = guess_type(file)[1]
+                _open = open
+                # only accommodating gzip compression at present
+                if encoding == "gzip":
+                    _open = partial(gzip.open, mode="rt")
+                with _open(file) as f:
+                    try:
+                        for rec in SeqIO.parse(f, "fastq"):
+                            if args.max_length and len(rec) > args.max_length:
+                                continue
+                            if args.min_length and len(rec) < args.min_length:
+                                continue
+                            if not args.skip_quality_check and get_read_mean_quality(rec) < args.quality:
+                                continue
+                            if args.sample < 1:
+                                r = random()
+                                if r >= args.sample:
+                                    continue
 
-						if rec.id not in dups:
-							SeqIO.write([rec], outfh, "fastq")
-							dups.add(rec.id)
+                            if rec.id not in dups:
+                                SeqIO.write([rec], outfh, "fastq")
+                                dups.add(rec.id)
+                    except ValueError:
+                       pass
 
-			outfh.close()
-			print(f"{fastq_outfn}\t{len(dups)}")
-
-
+            outfh.close()
+            print(f"{fastq_outfn}\t{len(dups)}")
