@@ -1,13 +1,16 @@
 #!/usr/bin/env python
 
-#Written by Nick Loman
-#Part of the ZiBRA pipeline (zibraproject.org)
+# Written by Nick Loman
+# Part of the ZiBRA pipeline (zibraproject.org)
 
 import pysam
 import sys
 from copy import copy
 from .vcftagprimersites import read_bed_file
 from collections import defaultdict
+
+from cigar import Cigar
+
 
 def check_still_matching_bases(s):
     for flag, length in s.cigartuples:
@@ -97,13 +100,32 @@ def trim(args, cigar, s, start_pos, end):
     return True
 
 def find_primer(bed, pos, direction):
+    """Given a reference position and a direction of travel, walk out and find the nearest primer site.
+
+    Parameters
+    ----------
+    bed : list
+        A list of dictionaries, where each dictionary contains a row of bedfile data
+    pos : int
+        The position in the reference sequence to start from
+    direction : string
+        The direction to search along the reference sequence
+
+    Returns
+    -------
+    tuple
+        The offset, distance and bed entry for the closest primer to the query position
+    """
     from operator import itemgetter
 
     if direction == '+':
-        closest = min([(abs(p['start'] - pos), p['start'] - pos, p) for p in bed if p['direction'] == direction], key=itemgetter(0))
+        closest = min([(abs(p['start'] - pos), p['start'] - pos, p)
+                       for p in bed if p['direction'] == direction], key=itemgetter(0))
     else:
-        closest = min([(abs(p['end'] - pos), p['end'] - pos, p) for p in bed if p['direction'] == direction], key=itemgetter(0))
+        closest = min([(abs(p['end'] - pos), p['end'] - pos, p)
+                       for p in bed if p['direction'] == direction], key=itemgetter(0))
     return closest
+
 
 def is_correctly_paired(p1, p2):
     name1 = p1[2]['Primer_ID']
@@ -113,6 +135,59 @@ def is_correctly_paired(p1, p2):
     name2 = name2.replace('_RIGHT', '')
 
     return name1 == name2
+
+def soft_mask(segment, mask_end_pos, reversePrimer, debug):
+    """Soft mask an alignment to fit within primer start/end sites.
+
+    Parameters
+    ----------
+    segment : pysam.AlignedSegment
+        The aligned segment to mask
+    mask_end_pos : int
+        The position in the alignment to soft mask until (equates to the start position of the primer in the reference)
+    reversePrimer : bool
+        True if the primer is the reverse primer
+    debug : bool
+        If True, will print masking info
+
+    Returns
+    -------
+    bool
+        Returns True if the cigar required soft masking
+    """
+
+    # copy the cigar into a Cigar object
+    segCigar = Cigar(segment.cigarstring)
+    if debug:
+        print("preparing to softmask cigar: {}" .format(segCigar))
+    
+    # keep an unaltered copy to quickly check if masking occured later
+    cigarCopy = str(segCigar)
+
+    # mask the requested end
+    if reversePrimer:
+        numToMask = segment.reference_end - mask_end_pos
+        segCigar = segCigar.mask_right(numToMask)
+        segment.cigarstring = str(segCigar)
+        if debug:
+            print("soft masking {} bases at end of segment" .format(numToMask))
+            print("cigar: {}" .format(segment.cigarstring))
+    else:
+        numToMask =  mask_end_pos - segment.reference_start
+        print(numToMask)
+        segCigar = segCigar.mask_left(numToMask)
+        segment.cigarstring = str(segCigar)
+        if debug:
+            print("soft masking {} bases at start of segment" .format(numToMask))
+            print("cigar: {}" .format(segment.cigarstring))
+
+        # update the start of the alignment if we have masked the forward primer
+        segment.reference_start += numToMask
+
+    # return False if the cigar did not need to be softmasked
+    if segment.cigarstring == cigarCopy:
+        return False
+    return True
 
 def go(args):
     if args.report:
@@ -140,15 +215,16 @@ def go(args):
     for s in infile:
         cigar = copy(s.cigartuples)
 
-        ## logic - if alignment start site is _before_ but within X bases of
-        ## a primer site, trim it off
+        # logic - if alignment start site is _before_ but within X bases of
+        # a primer site, trim it off
 
         if s.is_unmapped:
             print("%s skipped as unmapped" % (s.query_name), file=sys.stderr)
             continue
 
         if s.is_supplementary:
-            print("%s skipped as supplementary" % (s.query_name), file=sys.stderr)
+            print("%s skipped as supplementary" %
+                  (s.query_name), file=sys.stderr)
             continue
 
         p1 = find_primer(bed, s.reference_start, '+')
@@ -164,14 +240,15 @@ def go(args):
         if args.remove_incorrect_pairs and not correctly_paired:
             continue
 
-        report = "%s\t%s\t%s\t%s_%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%d" % (s.query_name, s.reference_start, s.reference_end, p1[2]['Primer_ID'], p2[2]['Primer_ID'], p1[2]['Primer_ID'], abs(p1[1]), p2[2]['Primer_ID'], abs(p2[1]), s.is_secondary, s.is_supplementary, p1[2]['start'], p2[2]['end'], correctly_paired)
+        report = "%s\t%s\t%s\t%s_%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%d" % (s.query_name, s.reference_start, s.reference_end, p1[2]['Primer_ID'], p2[2]['Primer_ID'], p1[2]['Primer_ID'], abs(
+            p1[1]), p2[2]['Primer_ID'], abs(p2[1]), s.is_secondary, s.is_supplementary, p1[2]['start'], p2[2]['end'], correctly_paired)
         if args.report:
             print(report, file=reportfh)
 
         if args.verbose:
             print(report, file=sys.stderr)
 
-        ## if the alignment starts before the end of the primer, trim to that position
+        # if the alignment starts before the end of the primer, trim to that position
 
         try:
             if args.start:
@@ -180,10 +257,13 @@ def go(args):
                 primer_position = p1[2]['end']
 
             if s.reference_start < primer_position:
-                if not trim(args, cigar, s, primer_position, 0): continue
+                #if not trim(args.verbose, cigar, s, primer_position, 0):
+                #    continue
+                soft_mask(s, primer_position, False, args.verbose)
             else:
                 if args.verbose:
-                    print("ref start %s >= primer_position %s" % (s.reference_start, primer_position), file=sys.stderr)
+                    print("ref start %s >= primer_position %s" %
+                          (s.reference_start, primer_position), file=sys.stderr)
 
             if args.start:
                 primer_position = p2[2]['end']
@@ -191,38 +271,47 @@ def go(args):
                 primer_position = p2[2]['start']
 
             if s.reference_end > primer_position:
-                trim(args, cigar, s, primer_position, 1)
+                #trim(args.verbose, cigar, s, primer_position, 1)
+                soft_mask(s, primer_position, True, args.verbose)
             else:
                 if args.verbose:
-                    print("ref end %s >= primer_position %s" % (s.reference_end, primer_position), file=sys.stderr)
+                    print("ref end %s >= primer_position %s" %
+                          (s.reference_end, primer_position), file=sys.stderr)
         except Exception as e:
             print("problem %s" % (e,), file=sys.stderr)
             pass
 
         if args.normalise:
-            pair = "%s-%s-%d" % (p1[2]['Primer_ID'], p2[2]['Primer_ID'], s.is_reverse)
+            pair = "%s-%s-%d" % (p1[2]['Primer_ID'],
+                                 p2[2]['Primer_ID'], s.is_reverse)
             counter[pair] += 1
 
             if counter[pair] > args.normalise:
                 continue
 
         if not check_still_matching_bases(s):
-             continue
+            continue
 
         outfile.write(s)
 
     if args.report:
         reportfh.close()
 
+
 def main():
     import argparse
 
-    parser = argparse.ArgumentParser(description='Trim alignments from an amplicon scheme.')
-    parser.add_argument('bedfile', help='BED file containing the amplicon scheme')
-    parser.add_argument('--normalise', type=int, help='Subsample to n coverage per strand')
+    parser = argparse.ArgumentParser(
+        description='Trim alignments from an amplicon scheme.')
+    parser.add_argument(
+        'bedfile', help='BED file containing the amplicon scheme')
+    parser.add_argument('--normalise', type=int,
+                        help='Subsample to n coverage per strand')
     parser.add_argument('--report', type=str, help='Output report to file')
-    parser.add_argument('--start', action='store_true', help='Trim to start of primers instead of ends')
-    parser.add_argument('--no-read-groups', dest='no_read_groups', action='store_true', help='Do not divide reads into groups in SAM output')
+    parser.add_argument('--start', action='store_true',
+                        help='Trim to start of primers instead of ends')
+    parser.add_argument('--no-read-groups', dest='no_read_groups',
+                        action='store_true', help='Do not divide reads into groups in SAM output')
     parser.add_argument('--verbose', action='store_true', help='Debug mode')
     parser.add_argument('--remove-incorrect-pairs', action='store_true')
 
