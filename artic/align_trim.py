@@ -1,103 +1,22 @@
 #!/usr/bin/env python
 
 # Written by Nick Loman
-# Part of the ZiBRA pipeline (zibraproject.org)
 
+from copy import copy
+from collections import defaultdict
 import pysam
 import sys
-from copy import copy
 from .vcftagprimersites import read_bed_file
-from collections import defaultdict
 
-from cigar import Cigar
+# LeadingDeletion is an exception created when a soft mask results in a leading deletion (e.g. 10S1D10M)
+class LeadingDeletion(Exception):
+    pass
 
+# consumesReference lookup for if a CIGAR operation consumes the reference sequence
+consumesReference = [True, False, True, True, False, False, False, True]
 
-def check_still_matching_bases(s):
-    for flag, length in s.cigartuples:
-        if flag == 0:
-            return True
-    return False
-
-def trim(args, cigar, s, start_pos, end):
-    if not end:
-        pos = s.pos
-    else:
-        pos = s.reference_end
-
-    eaten = 0
-    while 1:
-        ## chomp stuff off until we reach pos
-        if end:
-            flag, length = cigar.pop()
-        else:
-            flag, length = cigar.pop(0)
-
-        if args.verbose:
-            print("Chomped a %s, %s" % (flag, length), file=sys.stderr)
-
-        if flag == 0:
-            ## match
-            #to_trim -= length
-            eaten += length
-            if not end:
-                 pos += length
-            else:
-                 pos -= length
-        if flag == 1:
-            ## insertion to the ref
-            #to_trim -= length
-            eaten += length
-        if flag == 2:
-            ## deletion to the ref
-            #eaten += length
-            if not end:
-                pos += length
-            else:
-                pos -= length
-            pass
-        if flag == 4:
-            eaten += length
-        if not end and pos >= start_pos and flag == 0:
-            break
-        if end and pos <= start_pos and flag == 0:
-            break
-
-        #print >>sys.stderr, "pos:%s %s" % (pos, start_pos)
-
-    extra = abs(pos - start_pos)
-    if args.verbose:
-        print("extra %s" % (extra), file=sys.stderr)
-    if extra:
-        if flag == 0:
-            if args.verbose:
-                print("Inserted a %s, %s" % (0, extra), file=sys.stderr)
-
-            if end:
-                cigar.append((0, extra))
-            else:
-                cigar.insert(0, (0, extra))
-            eaten -= extra
-
-    if not end:
-        s.pos = pos - extra
-
-    if args.verbose:
-        print("New pos: %s" % (s.pos), file=sys.stderr)
-
-    if not end and cigar[0][0] == 2:
-        return False
-
-    if end:
-        cigar.append((4, eaten))
-    else:
-        cigar.insert(0, (4, eaten))
-    oldcigarstring = s.cigarstring
-    
-    #if cigar[0][0] == 2:
-    #    s.cigartuples = cigar[1:]
-    #else:
-    s.cigartuples = cigar
-    return True
+# consumesQuery lookup for if a CIGAR operation consumes the query sequence
+consumesQuery = [True, True, False, False, True, False, False, True]
 
 def find_primer(bed, pos, direction):
     """Given a reference position and a direction of travel, walk out and find the nearest primer site.
@@ -127,81 +46,120 @@ def find_primer(bed, pos, direction):
     return closest
 
 
-def is_correctly_paired(p1, p2):
-    name1 = p1[2]['Primer_ID']
-    name2 = p2[2]['Primer_ID']
-
-    name1 = name1.replace('_LEFT', '')
-    name2 = name2.replace('_RIGHT', '')
-
-    return name1 == name2
-
-def soft_mask(segment, mask_end_pos, reversePrimer, debug):
+def trim(segment, primer_pos, end, debug):
     """Soft mask an alignment to fit within primer start/end sites.
 
     Parameters
     ----------
     segment : pysam.AlignedSegment
         The aligned segment to mask
-    mask_end_pos : int
-        The position in the alignment to soft mask until (equates to the start position of the primer in the reference)
-    reversePrimer : bool
-        True if the primer is the reverse primer
+    primer_pos : int
+        The position in the reference to soft mask up to (equates to the start/end position of the primer in the reference)
+    end : bool
+        If True, the segment is being masked from the end (i.e. for the reverse primer)
     debug : bool
-        If True, will print masking info
-
-    Returns
-    -------
-    bool
-        Returns True if the cigar required soft masking
+        If True, will print soft masking info during trimming
     """
+    # get a copy of the cigar tuples to work with
+    cigar = copy(segment.cigartuples)
 
-    # copy the cigar into a Cigar object
-    segCigar = Cigar(segment.cigarstring)
-    if debug:
-        print("preparing to softmask cigar: {}" .format(segCigar))
-    
-    # keep an unaltered copy to quickly check if masking occured later
-    cigarCopy = str(segCigar)
-
-    # mask the requested end
-    if reversePrimer:
-        numToMask = segment.reference_end - mask_end_pos
-        segCigar = segCigar.mask_right(numToMask)
-        segment.cigarstring = str(segCigar)
-        if debug:
-            print("soft masking {} bases at end of segment" .format(numToMask))
-            print("cigar: {}" .format(segment.cigarstring))
+    # get the segment position in the reference (depends on if start or end of the segment is being processed)
+    if not end:
+        pos = segment.pos
     else:
-        numToMask =  mask_end_pos - segment.reference_start
-        print(numToMask)
-        segCigar = segCigar.mask_left(numToMask)
-        segment.cigarstring = str(segCigar)
-        if debug:
-            print("soft masking {} bases at start of segment" .format(numToMask))
-            print("cigar: {}" .format(segment.cigarstring))
+        pos = segment.reference_end
 
-        # update the start of the alignment if we have masked the forward primer
-        segment.reference_start += numToMask
+    # process the CIGAR to determine how much softmasking is required
+    eaten = 0
+    while 1:
 
-    # return False if the cigar did not need to be softmasked
-    if segment.cigarstring == cigarCopy:
-        return False
-    return True
+        # chomp CIGAR operations from the start/end of the CIGAR
+        try:
+            if end:
+                flag, length = cigar.pop()
+            else:
+                flag, length = cigar.pop(0)
+            if debug: print("Chomped a %s, %s" % (flag, length), file=sys.stderr)
+        except IndexError:
+            print("Ran out of cigar during soft masking - completely masked read will be ignored", file=sys.stderr)
+            break
+
+        # if the CIGAR operation consumes the reference sequence, increment/decrement the position by the CIGAR operation length
+        if (consumesReference[flag]):
+            if not end:
+                pos += length
+            else:
+                pos -= length
+
+        # if the CIGAR operation consumes the query sequence, increment the number of CIGAR operations eaten by the CIGAR operation length
+        if (consumesQuery[flag]):
+            eaten += length
+
+        # stop processing the CIGAR if we've gone far enough to mask the primer
+        if not end and pos >= primer_pos and flag == 0:
+            break
+        if end and pos <= primer_pos and flag == 0:
+            break
+
+    # calculate how many extra matches are needed in the CIGAR
+    extra = abs(pos - primer_pos)
+    if debug: print("extra %s" % (extra), file=sys.stderr)
+    if extra:
+        if flag == 0:
+            if debug: print("Inserted a %s, %s" % (0, extra), file=sys.stderr)
+
+            if end:
+                cigar.append((0, extra))
+            else:
+                cigar.insert(0, (0, extra))                
+            eaten -= extra
+
+    # if softmasking the left primer, update the position of the leftmost mapping base
+    if not end:
+        segment.pos = pos - extra
+        if debug: print("New pos: %s" % (segment.pos), file=sys.stderr)
+
+
+    # if softmasking will result in a leading deletion operation in the final CIGAR, eat the deletions and increase the softmask
+    if not end and cigar[0][0] == 2:
+        raise LeadingDeletion("softmask created a leading deletion in the CIGAR")
+
+    # add the eaten CIGAR operations as a softmask to the start/end of the CIGAR
+    if end:
+        cigar.append((4, eaten))
+    else:
+        cigar.insert(0, (4, eaten))
+
+    # check the new CIGAR and replace the old one
+    if cigar[0][1] <= 0 or cigar[-1][1] <= 0:
+        print("invalid cigar operation created - possibly due to INDEL in primer")
+        raise
+    originalCigar = segment.cigarstring
+    segment.cigartuples = cigar
+
+    return
 
 def go(args):
+    """Filter and soft mask an alignment file so that the alignment boundaries match the primer start and end sites.
+
+    Based on the most likely primer position, based on the alignment coordinates.
+    """
+    # prepare the report outfile
     if args.report:
         reportfh = open(args.report, "w")
         print("QueryName\tReferenceStart\tReferenceEnd\tPrimerPair\tPrimer1\tPrimer1Start\tPrimer2\tPrimer2Start\tIsSecondary\tIsSupplementary\tStart\tEnd\tCorrectlyPaired", file=reportfh)
 
+    # set up a counter to track amplicon abundance
+    counter = defaultdict(int)
+
+    # open the primer scheme and get the pools
     bed = read_bed_file(args.bedfile)
     pools = set([row['PoolName'] for row in bed])
     pools.add('unmatched')
 
+    # open the input SAM file and process read groups
     infile = pysam.AlignmentFile("-", "rb")
-
     bam_header = infile.header.copy().to_dict()
-
     if not args.no_read_groups:
         bam_header['RG'] = []
         for pool in pools:
@@ -209,91 +167,93 @@ def go(args):
             read_group['ID'] = pool
             bam_header['RG'].append(read_group)
 
-    counter = defaultdict(int)
-
+    # prepare the alignment outfile
     outfile = pysam.AlignmentFile("-", "wh", header=bam_header)
-    for s in infile:
-        cigar = copy(s.cigartuples)
 
-        # logic - if alignment start site is _before_ but within X bases of
-        # a primer site, trim it off
+    # iterate over the alignment segments in the input SAM file
+    for segment in infile:
 
-        if s.is_unmapped:
-            print("%s skipped as unmapped" % (s.query_name), file=sys.stderr)
+        # filter out unmapped and supplementary alignment segments
+        if segment.is_unmapped:
+            print("%s skipped as unmapped" % (segment.query_name), file=sys.stderr)
             continue
-
-        if s.is_supplementary:
+        if segment.is_supplementary:
             print("%s skipped as supplementary" %
-                  (s.query_name), file=sys.stderr)
+                  (segment.query_name), file=sys.stderr)
             continue
 
-        p1 = find_primer(bed, s.reference_start, '+')
-        p2 = find_primer(bed, s.reference_end, '-')
+        # locate the nearest primers to this alignment segment
+        p1 = find_primer(bed, segment.reference_start, '+')
+        p2 = find_primer(bed, segment.reference_end, '-')
 
-        correctly_paired = is_correctly_paired(p1, p2)
+        # check if primers are correctly paired and then assign read group
+        # NOTE: removed this as a function as only called once
+        # TODO: will try improving this / moving it to the primer scheme processing code
+        correctly_paired = p1[2]['Primer_ID'].replace('_LEFT', '') == p2[2]['Primer_ID'].replace('_RIGHT', '')
         if not args.no_read_groups:
             if correctly_paired:
-                s.set_tag('RG', p1[2]['PoolName'])
+                segment.set_tag('RG', p1[2]['PoolName'])
             else:
-                s.set_tag('RG', 'unmatched')
-
+                segment.set_tag('RG', 'unmatched')
         if args.remove_incorrect_pairs and not correctly_paired:
+            print("%s skipped as not correctly paired" % (segment.query_name), file=sys.stderr)
             continue
 
-        report = "%s\t%s\t%s\t%s_%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%d" % (s.query_name, s.reference_start, s.reference_end, p1[2]['Primer_ID'], p2[2]['Primer_ID'], p1[2]['Primer_ID'], abs(
-            p1[1]), p2[2]['Primer_ID'], abs(p2[1]), s.is_secondary, s.is_supplementary, p1[2]['start'], p2[2]['end'], correctly_paired)
+        # update the report with this alignment segment + primer details
+        report = "%s\t%s\t%s\t%s_%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%d" % (segment.query_name, segment.reference_start, segment.reference_end, p1[2]['Primer_ID'], p2[2]['Primer_ID'], p1[2]['Primer_ID'], abs(
+            p1[1]), p2[2]['Primer_ID'], abs(p2[1]), segment.is_secondary, segment.is_supplementary, p1[2]['start'], p2[2]['end'], correctly_paired)
         if args.report:
             print(report, file=reportfh)
-
         if args.verbose:
             print(report, file=sys.stderr)
 
-        # if the alignment starts before the end of the primer, trim to that position
+        # get the primer positions
+        if args.start:
+            p1_position = p1[2]['start']
+            p2_position = p2[2]['end']
+        else:
+            p1_position = p1[2]['end']
+            p2_position = p2[2]['start']
 
-        try:
-            if args.start:
-                primer_position = p1[2]['start']
-            else:
-                primer_position = p1[2]['end']
-
-            if s.reference_start < primer_position:
-                #if not trim(args.verbose, cigar, s, primer_position, 0):
-                #    continue
-                soft_mask(s, primer_position, False, args.verbose)
-            else:
-                if args.verbose:
-                    print("ref start %s >= primer_position %s" %
-                          (s.reference_start, primer_position), file=sys.stderr)
-
-            if args.start:
-                primer_position = p2[2]['end']
-            else:
-                primer_position = p2[2]['start']
-
-            if s.reference_end > primer_position:
-                #trim(args.verbose, cigar, s, primer_position, 1)
-                soft_mask(s, primer_position, True, args.verbose)
-            else:
-                if args.verbose:
-                    print("ref end %s >= primer_position %s" %
-                          (s.reference_end, primer_position), file=sys.stderr)
-        except Exception as e:
-            print("problem %s" % (e,), file=sys.stderr)
-            pass
-
-        if args.normalise:
-            pair = "%s-%s-%d" % (p1[2]['Primer_ID'],
-                                 p2[2]['Primer_ID'], s.is_reverse)
-            counter[pair] += 1
-
-            if counter[pair] > args.normalise:
+        # softmask the alignment if left primer start/end inside alignment
+        if segment.reference_start < p1_position:
+            try:
+                trim(segment, p1_position, False, args.verbose)
+                if args.verbose: print("ref start %s >= primer_position %s" % (segment.reference_start, p1_position), file=sys.stderr)
+            except LeadingDeletion: continue
+            except Exception as e:
+                print("problem soft masking left primer in {} (error: {}), skipping" .format(segment.query_name, e), file=sys.stderr)
                 continue
 
-        if not check_still_matching_bases(s):
+        # softmask the alignment if right primer start/end inside alignment
+        if segment.reference_end > p2_position:
+            try:
+                trim(segment, p2_position, True, args.verbose)
+                if args.verbose: print("ref start %s >= primer_position %s" % (segment.reference_start, p2_position), file=sys.stderr)
+            except Exception as e:
+                print("problem soft masking right primer in {} (error: {}), skipping" .format(segment.query_name, e), file=sys.stderr)
+                continue
+
+        # normalise if requested
+        if args.normalise:
+            pair = "%s-%s-%d" % (p1[2]['Primer_ID'],
+                                 p2[2]['Primer_ID'], segment.is_reverse)
+            counter[pair] += 1
+            if counter[pair] > args.normalise:
+                print("%s dropped as abundance theshold reached" % (segment.query_name), file=sys.stderr)
+                continue
+
+        # check the the alignment still contains bases matching the reference
+        if 'M' not in segment.cigarstring:
+            print("%s dropped as does not match reference post masking" % (segment.query_name), file=sys.stderr)
             continue
 
-        outfile.write(s)
+        # current alignment segment has passed filters, send it to the outfile
+        outfile.write(segment)
 
+    # close up the file handles
+    infile.close()
+    outfile.close()
     if args.report:
         reportfh.close()
 

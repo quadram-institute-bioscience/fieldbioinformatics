@@ -2,8 +2,6 @@
 import pytest
 import os
 import pysam
-from copy import copy
-from cigar import Cigar
 
 from artic import align_trim
 from artic import vcftagprimersites
@@ -42,18 +40,35 @@ dummyPrimerScheme = [p1, p2, p3, p4]
 
 # actual the primer scheme for nCov
 primerScheme = vcftagprimersites.read_bed_file(
-        TEST_DIR + "/../test-data/primer-schemes/nCoV-2019/V3/nCoV-2019.scheme.bed")
+        TEST_DIR + "/../test-data/primer-schemes/nCoV-2019/V1/nCoV-2019.scheme.bed")
 
-# dummy alignment segment
-seg = pysam.AlignedSegment()
-seg.query_name = "0be29940-97ae-440e-b02c-07748edeceec"
-seg.flag = 0
-seg.reference_id = 0
-seg.reference_start = 4294
-seg.mapping_quality = 60
-seg.cigarstring = "40S9M1D8M2D55M1D4M2I12M1I14M1D101M1D53M2D78M1I60M52S"
-seg.query_sequence = "CAGGTTAACACAAAGACACCGACAACTTTCTTCAGCACCTACAGTGCTTAAAAGTGTAAGTGCCTTTTACATTCTACCATCTATTATCTCTAATGAGAAGCAAGAAATTCTTGAACCTTCATACTTGGAATTTTGCGAGAAATGCTGCACATGCAGAAGAAACACGCAAATTAATGCCTGTCTGTGTGGAAACTAAAGCCATAGTTTCAACTATACAGCGTAAATATAAGGGTATTAAAATACAAGGGGTGTGGTTGATTATGGTGCTAGATTTTACTTTTACACCAGTAAAACAACTGGCGTCACTTATCAACACACTTAACGATCTAAATGAAACTCTTGTTACAATGCCACTTGGCTATGTAACACATGGCTTAGAATTTGGAAGAAGCTGCTCGGTATATGAGATCTCTCAAAGTGCCAGCTACAGTTTCTGTTGCGATTGCTGAAAGTTGTCGGTGTCTTTGTGTTAACCTTAGCAATACCCATG"
-seg.query_qualities = [30] * 490
+
+# nCov alignment segment (derived from a real nCov read)
+seg1 = pysam.AlignedSegment()
+seg1.query_name = "0be29940-97ae-440e-b02c-07748edeceec"
+seg1.flag = 0
+seg1.reference_id = 0
+seg1.reference_start = 4294
+seg1.mapping_quality = 60
+seg1.cigarstring = "40S9M1D8M2D55M1D4M2I12M1I14M1D101M1D53M2D78M1I60M52S"
+seg1.query_sequence = "CAGGTTAACACAAAGACACCGACAACTTTCTTCAGCACCTACAGTGCTTAAAAGTGTAAGTGCCTTTTACATTCTACCATCTATTATCTCTAATGAGAAGCAAGAAATTCTTGAACCTTCATACTTGGAATTTTGCGAGAAATGCTGCACATGCAGAAGAAACACGCAAATTAATGCCTGTCTGTGTGGAAACTAAAGCCATAGTTTCAACTATACAGCGTAAATATAAGGGTATTAAAATACAAGGGGTGTGGTTGATTATGGTGCTAGATTTTACTTTTACACCAGTAAAACAACTGGCGTCACTTATCAACACACTTAACGATCTAAATGAAACTCTTGTTACAATGCCACTTGGCTATGTAACACATGGCTTAGAATTTGGAAGAAGCTGCTCGGTATATGAGATCTCTCAAAGTGCCAGCTACAGTTTCTGTTGCGATTGCTGAAAGTTGTCGGTGTCTTTGTGTTAACCTTAGCAATACCCATG"
+seg1.query_qualities = [30] * 490
+
+# nCov alignment segment (derived from a real nCov read) - will result in a leading CIGAR deletion during softmasking
+seg2 = pysam.AlignedSegment()
+seg2.query_name = "15c86d34-a527-4506-9b0c-f62827d01555"
+seg2.flag = 0
+seg2.reference_id = 0
+seg2.reference_start = 4294
+seg2.mapping_quality = 60
+seg2.cigarstring = "41S9M1D17M1D69M5D1M1D40M2I12M1D41M1D117M1I3M1D4M2D11M2I2M1D18M1D18M1I25M56S"
+seg2.query_sequence = "CCAGGTTAACACAAAGACACCGACAACTTTCTTCAGCACCTACAGTGCTTAAAAGTGTAAAAGTGCCTTTACATTCTACCATCTATTATCTCTAATGAGAAGCAAGAAATTCTTGGAACTGTTTCTTGGAATTTGCAGCTTGCACATGCAGAAGAAACACGCAAATTAATGCCTGTCTGTGTGTGGAAACTAAGCCATAGTTTCAACTATACAGCGTAAATATAAGGGTATTAAATACAAGAGGGTGTGGTTGATTATGGTGCTAGATTTTACTTTTACACCAGTAAAACAACTGTAGCGTCACTTATCAACACGCTTAACGATCTAAATGAAACTCTTGTTACAATGCACACTGGCTGTAACACATGAAACTAAATTTGGAAGAAGCTGTCGGTATATGAGATCTCTCCAAAGTGCCAGCTACGGTTTCTGTTAGGTGCTGAAAAGAAAGTTGTCGGTGTCTTTGTGTGAACCTTAGCAATACGTAACC"
+seg2.query_qualities = [30] * 490
+
+
+# expected softmasked CIGARs
+seg1expectedCIGAR = "64S48M1D4M2I12M1I14M1D101M1D53M2D78M1I38M74S"
+seg2expectedCIGAR = "67S1D69M5D1M1D40M2I12M1D41M1D117M1I3M1D4M2D11M2I2M1D18M1D18M1I3M78S"
 
 # test for the find_primer function
 def test_find_primer():
@@ -76,35 +91,53 @@ def test_find_primer():
         dummyPrimerScheme, 25, "-")
     assert result[2]["primerID"] == "primer1_RIGHT", "find_primer returned incorrect primer"
 
+# test trim
+def test_trim():
 
+    def testRunner(seg, expectedCIGAR):
 
-# test for the soft_mask function
-def test_mask():
+        # get the nearest primers to the alignment segment
+        p1 = align_trim.find_primer(primerScheme, seg.reference_start, '+')
+        p2 = align_trim.find_primer(primerScheme, seg.reference_end, '-')
 
-    # get the nearest primers to the alignment segment
-    p1 = align_trim.find_primer(primerScheme, seg.reference_start, '+')
-    p2 = align_trim.find_primer(primerScheme, seg.reference_end, '-')
+        # get the primer positions
+        p1_position = p1[2]['end']
+        p2_position = p2[2]['start']
 
-    # get the end of the first primer
-    primer_position = p1[2]['end']
+        # this segment should need forward and reverse softmasking
+        assert seg.reference_start < p1_position, "missed a forward soft masking opportunity"
+        assert seg.reference_end > p2_position, "missed a reverse soft masking opportunity"
 
-    # this should need a mask
-    numToMask = primer_position - seg.reference_start
-    assert numToMask > 0, "missed a soft masking opportunity"
+        # before masking, get the query_alignment_length and the CIGAR to use for testing later
+        originalCigar = seg.cigarstring
+        originalQueryAlnLength = seg.query_alignment_length
 
-    # but it is already softmasked in this region, so only the start pos should have changed
-    oldStart = seg.reference_start
-    masked = align_trim.soft_mask(seg, primer_position, False, True)
-    assert masked == False and seg.reference_start == (oldStart + numToMask), "soft masking shouldn't be needed, only a reference_start increment"
+        # trim the forward primer
+        try:
+            align_trim.trim(seg, p1_position, False, False)
+        except Exception as e:
+            raise Exception("problem soft masking left primer in {} (error: {})" .format(seg.query_name, e))
 
-    # get the end of the second primer
-    primer_position = p2[2]['start']
+        # check the CIGAR and query alignment length is updated
+        assert seg.cigarstring != originalCigar, "cigar was not updated with a softmask"
+        assert seg.query_alignment_length != originalQueryAlnLength, "query alignment was not updated after softmask"
 
-    # this should need a mask
-    numToMask = seg.reference_end - primer_position
-    assert numToMask > 0, "missed a soft masking opportunity"
-    oldStart = seg.reference_start
-    masked = align_trim.soft_mask(seg, primer_position, True, True)
+        # trim the reverse primer
+        try:
+            align_trim.trim(seg, p2_position, True, False)
+        except Exception as e:
+            raise Exception("problem soft masking right primer in {} (error: {})" .format(seg.query_name, e))
 
-    # again, should not need softmasking
-    assert masked == False and seg.reference_start == oldStart, "soft masking or reference_start increment shouldn't be needed"
+        # check the CIGAR and query alignment length is updated
+        assert seg.cigarstring != originalCigar, "cigar was not updated with a softmask"
+        assert seg.query_alignment_length != originalQueryAlnLength, "query alignment was not updated after softmask"
+
+        # check we have the right CIGAR
+        assert expectedCIGAR == seg.cigarstring, "cigar does not match expected cigar string"
+
+        # check the query alignment now matches the expected primer product
+        assert seg.reference_start == p1_position, "left primer not masked corrrectly"
+        assert seg.reference_end == p2_position, "right primer not masked correctly"
+
+    # run the test with the first alignment segment
+    testRunner(seg1, seg1expectedCIGAR)
