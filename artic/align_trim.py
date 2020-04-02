@@ -8,13 +8,6 @@ import pysam
 import sys
 from .vcftagprimersites import read_bed_file
 
-# LeadingDeletion is an exception created when a soft mask results in a leading deletion (e.g. 10S1D10M)
-
-
-class LeadingDeletion(Exception):
-    pass
-
-
 # consumesReference lookup for if a CIGAR operation consumes the reference sequence
 consumesReference = [True, False, True, True, False, False, False, True]
 
@@ -112,37 +105,43 @@ def trim(segment, primer_pos, end, debug):
     if debug:
         print("extra %s" % (extra), file=sys.stderr)
     if extra:
-        if flag == 0:
-            if debug:
-                print("Inserted a %s, %s" % (0, extra), file=sys.stderr)
+        if debug:
+            print("Inserted a %s, %s" % (0, extra), file=sys.stderr)
+        if end:
+            cigar.append((0, extra))
+        else:
+            cigar.insert(0, (0, extra))
+        eaten -= extra
 
-            if end:
-                cigar.append((0, extra))
-            else:
-                cigar.insert(0, (0, extra))
-            eaten -= extra
-
-    # if softmasking the left primer, update the position of the leftmost mapping base
+    # softmask the left primer
     if not end:
+
+        # update the position of the leftmost mappinng base
         segment.pos = pos - extra
         if debug:
             print("New pos: %s" % (segment.pos), file=sys.stderr)
 
-    # if softmasking will result in a leading deletion operation in the final CIGAR, eat the deletions and increase the softmask
-    if not end and cigar[0][0] == 2:
-        raise LeadingDeletion(
-            "softmask created a leading deletion in the CIGAR")
+        # if proposed softmask leads straight into a deletion, shuffle leftmost mapping base along and ignore the deletion
+        if cigar[0][0] == 2:
+            if debug:
+                print(
+                    "softmask created a leading deletion in the CIGAR, shuffling the alignment", file=sys.stderr)
+            while 1:
+                if cigar[0][0] != 2:
+                    break
+                _, length = cigar.pop(0)
+                segment.pos += length
 
-    # add the eaten CIGAR operations as a softmask to the start/end of the CIGAR
-    if end:
-        cigar.append((4, eaten))
-    else:
+        # now add the leading softmask
         cigar.insert(0, (4, eaten))
+
+    # softmask the right primer
+    else:
+        cigar.append((4, eaten))
 
     # check the new CIGAR and replace the old one
     if cigar[0][1] <= 0 or cigar[-1][1] <= 0:
         raise ("invalid cigar operation created - possibly due to INDEL in primer")
-
     segment.cigartuples = cigar
     return
 
@@ -233,8 +232,6 @@ def go(args):
                 if args.verbose:
                     print("ref start %s >= primer_position %s" %
                           (segment.reference_start, p1_position), file=sys.stderr)
-            except LeadingDeletion:
-                continue
             except Exception as e:
                 print("problem soft masking left primer in {} (error: {}), skipping" .format(
                     segment.query_name, e), file=sys.stderr)

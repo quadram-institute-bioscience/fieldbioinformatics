@@ -11,28 +11,28 @@ TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # dummy primers (using min required fields)
 p1 = {
-        "start": 0,
-        "end": 10,
-        "direction": "+",
-        "primerID": "primer1_LEFT"
+    "start": 0,
+    "end": 10,
+    "direction": "+",
+    "primerID": "primer1_LEFT"
 }
 p2 = {
-        "start": 30,
-        "end": 40,
-        "direction": "-",
-        "primerID": "primer1_RIGHT"
+    "start": 30,
+    "end": 40,
+    "direction": "-",
+    "primerID": "primer1_RIGHT"
 }
 p3 = {
-        "start": 10,
-        "end": 20,
-        "direction": "+",
-        "primerID": "primer2_LEFT"
+    "start": 10,
+    "end": 20,
+    "direction": "+",
+    "primerID": "primer2_LEFT"
 }
 p4 = {
-        "start": 40,
-        "end": 50,
-        "direction": "-",
-        "primerID": "primer2_RIGHT"
+    "start": 40,
+    "end": 50,
+    "direction": "-",
+    "primerID": "primer2_RIGHT"
 }
 
 # primer scheme to hold dummy primers
@@ -40,7 +40,7 @@ dummyPrimerScheme = [p1, p2, p3, p4]
 
 # actual the primer scheme for nCov
 primerScheme = vcftagprimersites.read_bed_file(
-        TEST_DIR + "/../test-data/primer-schemes/nCoV-2019/V1/nCoV-2019.scheme.bed")
+    TEST_DIR + "/../test-data/primer-schemes/nCoV-2019/V1/nCoV-2019.scheme.bed")
 
 
 # nCov alignment segment (derived from a real nCov read)
@@ -68,10 +68,12 @@ seg2.query_qualities = [30] * 490
 
 # expected softmasked CIGARs
 seg1expectedCIGAR = "64S48M1D4M2I12M1I14M1D101M1D53M2D78M1I38M74S"
-seg2expectedCIGAR = "67S1D69M5D1M1D40M2I12M1D41M1D117M1I3M1D4M2D11M2I2M1D18M1D18M1I3M78S"
+seg2expectedCIGAR = "67S69M5D1M1D40M2I12M1D41M1D117M1I3M1D4M2D11M2I2M1D18M1D18M1I3M78S"
 
-# test for the find_primer function
+
 def test_find_primer():
+    """test for the find primer function
+    """
 
     # test the primer finder on the primers themselves
     for primer in dummyPrimerScheme:
@@ -91,8 +93,10 @@ def test_find_primer():
         dummyPrimerScheme, 25, "-")
     assert result[2]["primerID"] == "primer1_RIGHT", "find_primer returned incorrect primer"
 
-# test trim
+
 def test_trim():
+    """test for the trim function
+    """
 
     def testRunner(seg, expectedCIGAR):
 
@@ -105,8 +109,8 @@ def test_trim():
         p2_position = p2[2]['start']
 
         # this segment should need forward and reverse softmasking
-        assert seg.reference_start < p1_position, "missed a forward soft masking opportunity"
-        assert seg.reference_end > p2_position, "missed a reverse soft masking opportunity"
+        assert seg.reference_start < p1_position, "missed a forward soft masking opportunity (read: %s)" % seg.query_name
+        assert seg.reference_end > p2_position, "missed a reverse soft masking opportunity (read: %s)" % seg.query_name
 
         # before masking, get the query_alignment_length and the CIGAR to use for testing later
         originalCigar = seg.cigarstring
@@ -116,28 +120,31 @@ def test_trim():
         try:
             align_trim.trim(seg, p1_position, False, False)
         except Exception as e:
-            raise Exception("problem soft masking left primer in {} (error: {})" .format(seg.query_name, e))
+            raise Exception(
+                "problem soft masking left primer in {} (error: {})" .format(seg.query_name, e))
 
         # check the CIGAR and query alignment length is updated
-        assert seg.cigarstring != originalCigar, "cigar was not updated with a softmask"
-        assert seg.query_alignment_length != originalQueryAlnLength, "query alignment was not updated after softmask"
+        assert seg.cigarstring != originalCigar, "cigar was not updated with a softmask (read: %s)" % seg.query_name
+        assert seg.query_alignment_length != originalQueryAlnLength, "query alignment was not updated after softmask (read: %s)" % seg.query_name
 
         # trim the reverse primer
         try:
             align_trim.trim(seg, p2_position, True, False)
         except Exception as e:
-            raise Exception("problem soft masking right primer in {} (error: {})" .format(seg.query_name, e))
+            raise Exception("problem soft masking right primer in {} (error: {})" .format(
+                seg.query_name, e))
 
         # check the CIGAR and query alignment length is updated
-        assert seg.cigarstring != originalCigar, "cigar was not updated with a softmask"
-        assert seg.query_alignment_length != originalQueryAlnLength, "query alignment was not updated after softmask"
+        assert seg.cigarstring != originalCigar, "cigar was not updated with a softmask (read: %s)" % seg.query_name
+        assert seg.query_alignment_length != originalQueryAlnLength, "query alignment was not updated after softmask (read: %s)" % seg.query_name
 
         # check we have the right CIGAR
-        assert expectedCIGAR == seg.cigarstring, "cigar does not match expected cigar string"
+        assert seg.cigarstring == expectedCIGAR, "cigar does not match expected cigar string (read: %s)" % seg.query_name
 
         # check the query alignment now matches the expected primer product
-        assert seg.reference_start == p1_position, "left primer not masked corrrectly"
-        assert seg.reference_end == p2_position, "right primer not masked correctly"
+        assert seg.reference_start >= p1_position, "left primer not masked corrrectly (read: %s)" % seg.query_name
+        assert seg.reference_end <= p2_position, "right primer not masked correctly (read: %s)" % seg.query_name
 
     # run the test with the first alignment segment
     testRunner(seg1, seg1expectedCIGAR)
+    testRunner(seg2, seg2expectedCIGAR)
