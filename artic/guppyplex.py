@@ -3,6 +3,7 @@ from Bio import SeqIO
 import tempfile
 import os
 import glob
+import gzip
 import fnmatch
 import shutil
 import pandas as pd
@@ -39,7 +40,7 @@ def run(parser, args):
 
             dups = set()
 
-            for file in fastq[0:len(fastq)-2]:
+            for file in fastq:
                 encoding = guess_type(file)[1]
                 _open = open
                 # only accommodating gzip compression at present
