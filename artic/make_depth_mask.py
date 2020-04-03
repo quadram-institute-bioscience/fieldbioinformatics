@@ -1,67 +1,122 @@
 #!/usr/bin/env python
 from Bio import SeqIO
-import sys
-import vcf
-import subprocess
-from collections import defaultdict
-import os.path
-import operator
-from .vcftagprimersites import read_bed_file
 import itertools
+import os
+import pysam
 
-def collect_depths(bamfile):
+
+def collect_depths(bamfile, refName, minDepth, ignoreDeletions):
+    """Collect read depth of coverage per reference position in a BAM file.
+
+    Parameters
+    ----------
+    bamfile : string
+        The BAM file that needs processing
+
+    refName : string
+        The name of the reference sequence to collect the depths for
+
+    minDepth : int
+        The minimum depth to report coverage for (0 will be reported if coverage < minDepth at a given position)
+
+    ignoreDeletions : bool
+        If true, positional depth counts will ignore reads with reference deletions
+
+    Returns
+    -------
+    list
+        Index is the reference position, value is the corresponding coverage depth
+    """
+    # check the BAM file exists
     if not os.path.exists(bamfile):
-        raise SystemExit("bamfile %s doesn't exist" % (bamfile,))
+        raise Exception("bamfile doesn't exist (%s)" % bamfile)
 
-    print(bamfile, file=sys.stderr)
+    # open the BAM file
+    bamFile = pysam.AlignmentFile(bamfile, 'rb')
 
-    p = subprocess.Popen(['samtools', 'depth', bamfile],
-                             stdout=subprocess.PIPE)
-    out, err = p.communicate()
-    depths = defaultdict(dict)
-    for ln in out.decode('utf-8').split("\n"):
-       if ln:
-          contig, pos, depth = ln.split("\t")
-          depths[contig][int(pos)] = int(depth)
+    # get the TID for the reference
+    tid = bamFile.get_tid(refName)
+    if tid == -1:
+        raise Exception(
+            "bamfile does not contain specified reference (%s)" % refName)
+
+    # create a depth vector to hold the depths at each reference position
+    depths = [0] * bamFile.get_reference_length(refName)
+
+    # generate the pileup
+    for pileupcolumn in bamFile.pileup(refName, max_depth=10000, truncate=False, min_base_quality=0):
+
+        # process the pileup column
+        for pileupread in pileupcolumn.pileups:
+            if pileupread.is_refskip:
+                continue
+            if pileupread.is_del:
+                if not ignoreDeletions:
+                    depths[pileupcolumn.pos] += 1
+            elif not pileupread.is_del:
+                depths[pileupcolumn.pos] += 1
+            else:
+                raise Exception("unhandled pileup read encountered")
+
+        # if final depth for pileup column < minDepth, report 0 and update the mask_vector
+        if depths[pileupcolumn.pos] < minDepth:
+            depths[pileupcolumn.pos] = 0
+
+    # close file and return depth vector
+    bamFile.close()
     return depths
 
+
 # from https://www.geeksforgeeks.org/python-make-a-list-of-intervals-with-sequential-numbers/
-def intervals_extract(iterable): 
-    iterable = sorted(set(iterable)) 
-    for key, group in itertools.groupby(enumerate(iterable), 
-    lambda t: t[1] - t[0]): 
-        group = list(group) 
-        yield [group[0][1], group[-1][1]] 
+def intervals_extract(iterable):
+    iterable = sorted(set(iterable))
+    for _, group in itertools.groupby(enumerate(iterable), lambda t: t[1] - t[0]):
+        group = list(group)
+        yield [group[0][1], group[-1][1]]
+
 
 def go(args):
-    depths = collect_depths(args.bamfile)
 
+    # open the reference sequence and collect the sequence header and sequence length of the first record
+    record = list(SeqIO.parse(args.reference, "fasta"))[0]
+    seqID = record.id
+    seqLength = len(record.seq)
+
+    # collect the depths from the pileup, replacing any depth<minDepth with 0
+    try:
+        depths = collect_depths(args.bamfile, seqID,
+                                args.depth, args.ignore_deletions)
+    except Exception as e:
+        print(e)
+        raise SystemExit(1)
+
+    # check the number of positions in the reported depths matches the reference sequence
+    if len(depths) != seqLength:
+        print("pileup length did not match expected reference sequence length")
+
+    # create a mask_vector that records reference positions where depth < minDepth
     mask_vector = []
+    for pos, depth in enumerate(depths):
+        if depth == 0:
+            mask_vector.append(pos)
 
-    seq = list(SeqIO.parse(args.reference, "fasta"))[0]
-    cons = list(seq.seq)
-
-    for n, c in enumerate(cons):
-        try:
-            depth = depths[seq.id][n+1]
-        except:
-            depth = 0
-
-        if depth < args.depth:
-            mask_vector.append(n)
-
+    # get the intervals from the mask_vector
     intervals = list(intervals_extract(mask_vector))
 
+    # create the mask outfile
     maskfh = open(args.outfile, 'w')
     for i in intervals:
-        maskfh.write("%s\t%s\t%s\n" % (seq.id, i[0]+1, i[1]+1))
+        maskfh.write("%s\t%s\t%s\n" % (seqID, i[0]+1, i[1]+1))
     maskfh.close()
+
 
 def main():
     import argparse
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--depth', type=int, default=20)
+    parser.add_argument('--ignore-deletions', action="store_true", default=False,
+                        help="if set, positional depth counts will ignore reads with reference deletions (i.e. evaluates positional depths on ref matches, not read span")
     parser.add_argument('reference')
     parser.add_argument('bamfile')
     parser.add_argument('outfile')
@@ -69,6 +124,6 @@ def main():
     args = parser.parse_args()
     go(args)
 
+
 if __name__ == "__main__":
     main()
-
