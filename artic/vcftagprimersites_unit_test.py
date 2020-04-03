@@ -1,10 +1,11 @@
-# test_vcftagprimersites.py is the unit tests for the vcf primer site tagging
-import pytest
+# vcftagprimersites_unit_test.py contains unit tests for the vcf primer site tagging
 import os
+import pytest
 
-from artic import vcftagprimersites
+from . import vcftagprimersites
 
-# pytest needs something like this to resolve where test data is kept:
+
+# help pytest resolve where test data is kept
 TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 
 

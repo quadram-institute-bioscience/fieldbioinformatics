@@ -1,12 +1,13 @@
-# align_trim_test.py is the unit tests for alignment trimming
-import pytest
+# align_trim_unit_test.py contains unit tests for alignment trimming
 import os
 import pysam
+import pytest
 
-from artic import align_trim
-from artic import vcftagprimersites
+from . import align_trim
+from . import vcftagprimersites
 
-# pytest needs something like this to resolve where test data is kept:
+
+# help pytest resolve where test data is kept
 TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # dummy primers (using min required fields)
@@ -42,7 +43,6 @@ dummyPrimerScheme = [p1, p2, p3, p4]
 primerScheme = vcftagprimersites.read_bed_file(
     TEST_DIR + "/../test-data/primer-schemes/nCoV-2019/V1/nCoV-2019.scheme.bed")
 
-
 # nCov alignment segment (derived from a real nCov read)
 seg1 = pysam.AlignedSegment()
 seg1.query_name = "0be29940-97ae-440e-b02c-07748edeceec"
@@ -64,7 +64,6 @@ seg2.mapping_quality = 60
 seg2.cigarstring = "41S9M1D17M1D69M5D1M1D40M2I12M1D41M1D117M1I3M1D4M2D11M2I2M1D18M1D18M1I25M56S"
 seg2.query_sequence = "CCAGGTTAACACAAAGACACCGACAACTTTCTTCAGCACCTACAGTGCTTAAAAGTGTAAAAGTGCCTTTACATTCTACCATCTATTATCTCTAATGAGAAGCAAGAAATTCTTGGAACTGTTTCTTGGAATTTGCAGCTTGCACATGCAGAAGAAACACGCAAATTAATGCCTGTCTGTGTGTGGAAACTAAGCCATAGTTTCAACTATACAGCGTAAATATAAGGGTATTAAATACAAGAGGGTGTGGTTGATTATGGTGCTAGATTTTACTTTTACACCAGTAAAACAACTGTAGCGTCACTTATCAACACGCTTAACGATCTAAATGAAACTCTTGTTACAATGCACACTGGCTGTAACACATGAAACTAAATTTGGAAGAAGCTGTCGGTATATGAGATCTCTCCAAAGTGCCAGCTACGGTTTCTGTTAGGTGCTGAAAAGAAAGTTGTCGGTGTCTTTGTGTGAACCTTAGCAATACGTAACC"
 seg2.query_qualities = [30] * 490
-
 
 # expected softmasked CIGARs
 seg1expectedCIGAR = "64S48M1D4M2I12M1I14M1D101M1D53M2D78M1I38M74S"
@@ -145,6 +144,6 @@ def test_trim():
         assert seg.reference_start >= p1_position, "left primer not masked corrrectly (read: %s)" % seg.query_name
         assert seg.reference_end <= p2_position, "right primer not masked correctly (read: %s)" % seg.query_name
 
-    # run the test with the first alignment segment
+    # run the test with the two alignment segments
     testRunner(seg1, seg1expectedCIGAR)
     testRunner(seg2, seg2expectedCIGAR)
