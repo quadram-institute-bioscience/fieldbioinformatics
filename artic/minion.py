@@ -101,7 +101,9 @@ def run(parser, args):
     cmds.append(merge_vcf_cmd)
 
     if args.medaka:
-        cmds.append("longshot -P 0.001 -F -A --no_haps --bam %s.primertrimmed.rg.sorted.bam --ref %s --out %s.longshot.vcf --potential_variants %s.merged.vcf" % (args.sample, ref, args.sample, args.sample))
+        cmds.append("bgzip -f %s.merged.vcf" % (args.sample))
+        cmds.append("tabix -p vcf %s.merged.vcf.gz" % (args.sample))
+        cmds.append("longshot -P 0.001 -F -A --no_haps --bam %s.primertrimmed.rg.sorted.bam --ref %s --out %s.longshot.vcf --potential_variants %s.merged.vcf.gz" % (args.sample, ref, args.sample, args.sample))
         cmds.append("artic_vcf_filter --longshot %s.longshot.vcf %s.pass.vcf %s.fail.vcf" % (args.sample, args.sample, args.sample))
     else:
         cmds.append("artic_vcf_filter --nanopolish %s.merged.vcf %s.pass.vcf %s.fail.vcf" % (args.sample, args.sample, args.sample))
