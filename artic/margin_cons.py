@@ -7,15 +7,10 @@ from collections import defaultdict
 import os.path
 import operator
 from .vcftagprimersites import read_bed_file
+import argparse
 
 #MASKED_POSITIONS = [2282]
 MASKED_POSITIONS = []
-
-reference = sys.argv[1]
-vcffile = sys.argv[2]
-bamfile = sys.argv[3]
-
-DEPTH_THRESHOLD = 20
 
 def collect_depths(bamfile):
     if not os.path.exists(bamfile):
@@ -33,18 +28,25 @@ def collect_depths(bamfile):
                     depths[contig][int(pos)] = int(depth)
     return depths
 
-depths = collect_depths(bamfile)
+class Reporter:
+    def __init__(self, vcffile, depths):
+        self.vcffile = vcffile
+        self.depths = depths
 
-def report(r, status, allele):
-    idfile = os.path.basename(vcffile).split(".")[0]
-    print("%s\t%s\tstatus\t%s" % (idfile, r.POS, status), file=sys.stderr)
-    print("%s\t%s\tdepth\t%s" % (idfile, r.POS, r.INFO.get('TotalReads', ['n/a'])), file=sys.stderr)
-    print("%s\t%s\tbasecalledfrac\t%s" % (idfile, r.POS, r.INFO.get('BaseCalledFraction', ['n/a'])), file=sys.stderr)
-    print("%s\t%s\tsupportfrac\t%s" % (idfile, r.POS, r.INFO.get('SupportFraction', ['n/a'])), file=sys.stderr)
-    print("%s\t%s\tallele\t%s" % (idfile, r.POS, allele), file=sys.stderr)
-    print("%s\t%s\tref\t%s" % (idfile, r.POS, r.REF), file=sys.stderr)
+    def report(self, r, status, allele):
+        idfile = os.path.basename(self.vcffile).split(".")[0]
+        print("%s\t%s\tstatus\t%s" % (idfile, r.POS, status), file=sys.stderr)
+        print("%s\t%s\tdepth\t%s" % (idfile, r.POS, r.INFO.get('TotalReads', ['n/a'])), file=sys.stderr)
+        print("%s\t%s\tbasecalledfrac\t%s" % (idfile, r.POS, r.INFO.get('BaseCalledFraction', ['n/a'])), file=sys.stderr)
+        print("%s\t%s\tsupportfrac\t%s" % (idfile, r.POS, r.INFO.get('SupportFraction', ['n/a'])), file=sys.stderr)
+        print("%s\t%s\tallele\t%s" % (idfile, r.POS, allele), file=sys.stderr)
+        print("%s\t%s\tref\t%s" % (idfile, r.POS, r.REF), file=sys.stderr)
 
-def main():
+def go(args):
+
+    depths = collect_depths(args.bamfile)
+    reporter = Reporter(args.vcffile, depths)
+
     cons = ''
 
     seq = list(SeqIO.parse(open(sys.argv[1]), "fasta"))[0]
@@ -56,24 +58,24 @@ def main():
         except:
             depth = 0
 
-        if depth < DEPTH_THRESHOLD:
+        if depth < args.depth:
             cons[n] = 'N'
 
     for mask in MASKED_POSITIONS:
         cons[mask-1] = 'N'
 
     sett = set()
-    vcf_reader = vcf.Reader(open(vcffile, 'r'))
+    vcf_reader = vcf.Reader(open(args.vcffile, 'r'))
     for record in vcf_reader:
         if record.ALT[0] != '.':
             # variant call
 
             if record.POS in MASKED_POSITIONS:
-                report(record, "masked_manual", "n")
+                reporter.report(record, "masked_manual", "n")
                 continue
 
             if 'PRIMER' in record.INFO:
-                report(record, "primer_binding_site", "n")
+                reporter.report(record, "primer_binding_site", "n")
                 cons[record.POS-1] = 'N'
                 continue
 
@@ -95,7 +97,7 @@ def main():
                         cons[record.POS-1+n] = 'N'
                     continue
 
-                report(record, "variant", ALT)
+                reporter.report(record, "variant", ALT)
                 sett.add(record.POS)
                 if len(REF) > len(ALT):
                     print("deletion", file=sys.stderr)
@@ -109,16 +111,22 @@ def main():
             elif len(REF) > len(ALT):
                 continue
             else:
-                report(record, "low_qual_variant", "n")
+                reporter.report(record, "low_qual_variant", "n")
                 cons[record.POS-1] = 'N'
                 continue    
-
-    #print >>sys.stderr, str(sett)
 
     print(">%s" % (sys.argv[3]))
     print("".join(cons))
 
 
+def main():
+   parser = argparse.ArgumentParser()
+   parser.add_argument('--depth', type=int, default=20, help='minimum depth to call a variant')
+   parser.add_argument('reference')
+   parser.add_argument('vcffile')
+   parser.add_argument('bamfile')
+   args = parser.parse_args()
+   go(args)
+
 if __name__ == "__main__":
     main()
-
