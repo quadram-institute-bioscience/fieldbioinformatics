@@ -103,7 +103,7 @@ def run(parser, args):
     if args.medaka:
         cmds.append("bgzip -f %s.merged.vcf" % (args.sample))
         cmds.append("tabix -p vcf %s.merged.vcf.gz" % (args.sample))
-        cmds.append("longshot -P 0.001 -F -A --no_haps --bam %s.primertrimmed.rg.sorted.bam --ref %s --out %s.longshot.vcf --potential_variants %s.merged.vcf.gz" % (args.sample, ref, args.sample, args.sample))
+        cmds.append("longshot -P 0 -F -A --no_haps --bam %s.primertrimmed.rg.sorted.bam --ref %s --out %s.longshot.vcf --potential_variants %s.merged.vcf.gz" % (args.sample, ref, args.sample, args.sample))
         cmds.append("artic_vcf_filter --longshot %s.longshot.vcf %s.pass.vcf %s.fail.vcf" % (args.sample, args.sample, args.sample))
     else:
         cmds.append("artic_vcf_filter --nanopolish %s.merged.vcf %s.pass.vcf %s.fail.vcf" % (args.sample, args.sample, args.sample))
@@ -125,6 +125,9 @@ def run(parser, args):
     fasta_header = "%s/ARTIC/%s" % (args.sample, method)
 
     cmds.append("artic_fasta_header %s.consensus.fasta \"%s\"" % (args.sample, fasta_header))
+
+    cmds.append("cat %s.consensus.fasta %s > %s.muscle.in.fasta" % (args.sample, ref, args.sample))
+    cmds.append("muscle -in %s.muscle.in.fasta -out %s.muscle.out.fasta" % (args.sample, args.sample))
 
     for cmd in cmds:
         print(colored.green("Running: ") + cmd, file=sys.stderr)

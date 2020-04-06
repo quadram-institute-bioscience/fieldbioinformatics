@@ -16,6 +16,16 @@ class NanoporeFilter:
         if qual / total_reads < 3:
             return False
 
+        if len(v.ALT) > 1:
+            print ("This code does not support multiple genotypes!")
+            raise SystemExit
+
+        ref = v.REF
+        alt = v.ALT[0]
+
+        if (len(alt) - len(ref) % 3):
+            return False
+
         if v.is_indel:
             strand_fraction_by_strand = v.INFO['SupportFractionByStrand']
             if float(strand_fraction_by_strand[0]) < 0.5: 
