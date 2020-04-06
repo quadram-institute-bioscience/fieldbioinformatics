@@ -1,10 +1,14 @@
 dist: xenial
-os:
-  - linux
-  - osx
-language: python
-python:
-  - "3.6"
+language: python            # this works for Linux but is an error on macOS or Windows
+jobs:
+  include:
+    - name: "Python 3.6 on Xenial Linux"
+      python: 3.6           # this works for Linux but is ignored on macOS or Windows
+    - name: "Python 3.6 on macOS"
+      os: osx
+      language: shell       # 'language: python' is an error on Travis CI macOS
+      python: 3.6
+
 install:
   - sudo apt-get update
   - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
