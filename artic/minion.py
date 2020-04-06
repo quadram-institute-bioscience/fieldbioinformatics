@@ -127,6 +127,9 @@ def run(parser, args):
 
     cmds.append("artic_fasta_header %s.consensus.fasta \"%s\"" % (args.sample, fasta_header))
 
+    cmds.append("cat %s.consensus.fasta %s > %s.muscle.in.fasta" % (args.sample, ref, args.sample))
+    cmds.append("muscle -in %s.muscle.in.fasta -out %s.muscle.out.fasta" % (args.sample, args.sample))
+
     for cmd in cmds:
         print(colored.green("Running: ") + cmd, file=sys.stderr)
         if not args.dry_run:
