@@ -42,7 +42,7 @@ python setup.py install
 
 #### installing dependencies:
 
-The `artic pipeline` has several software dependencies. These dependencies are different for the `nanopolish` and `medaka` variants of the pipeline. We have provided some minimal conda environments to manage these dependencies.
+The `artic pipeline` has several software dependencies. These dependencies are different for the `nanopolish` and `medaka` variants of the pipeline. We have provided some minimal conda environments (for linux and osx) to manage these dependencies.
 
 Unfortunately, the required `nanopolish` and `medaka` versions are not compatible with each other, so **you will need 2 environments** if you want to try both the `nanopolish` and `medaka` variants of the pipeline.
 
@@ -54,8 +54,6 @@ conda env create -f test-data/env-nanopolish.yml && conda activate artic-nanopol
 conda env create -f test-data/env-medaka.yml && conda activate artic-medaka
 ```
 
->**Note:** currently, the latest conda nanopolish recipe does not support OSX, so OSX users must manage this dependency another way
-
 #### testing:
 
 First check the pipeline can be called.
@@ -64,13 +62,13 @@ First check the pipeline can be called.
 artic -v
 ```
 
-Now try the unit tests
+Now try the unit tests.
 
 ```
 pytest -s artic/*_unit_test.py
 ```
 
-You can also try the functional tests
+You can also try the functional tests.
 
 ```
 ./test-runner.sh nanopolish
