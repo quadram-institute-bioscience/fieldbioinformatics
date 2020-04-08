@@ -34,8 +34,8 @@ def go(args):
     sett = set()
     vcf_reader = vcf.Reader(open(args.maskvcf, 'r'))
     for record in vcf_reader:
-        if record.is_snp:
-            cons[record.CHROM][record.POS-1] = 'N'
+        for n in range(0, len(record.REF)):
+            cons[record.CHROM][record.POS-1+n] = 'N'
 
     fh = open(args.output, 'w')
     for k in seqs.keys():

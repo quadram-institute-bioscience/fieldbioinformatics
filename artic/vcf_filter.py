@@ -57,6 +57,16 @@ class LongshotFilter:
         if depth < 20:
             return False
 
+        if len(v.ALT) > 1:
+            print ("This code does not support multiple genotypes!")
+            raise SystemExit
+
+        ref = v.REF
+        alt = v.ALT[0]
+
+        if (len(alt) - len(ref) % 3):
+            return False
+
         if v.num_het:
             return False
         return True
