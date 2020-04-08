@@ -30,7 +30,7 @@ def get_read_mean_quality(record):
 def run(parser, args):
     fastq = defaultdict(list)
     files = os.listdir(args.directory)
-    fastq[args.directory].extend([os.path.join(args.directory, f) for f in files if fnmatch.fnmatch(f, '*.fastq*')])
+    fastq[args.directory].extend([os.path.join(args.directory, f) for f in files if fnmatch.fnmatch(f, '*.fastq*') and not f.endswith('.temp')])
 
     for barcode_directory, fastq in list(fastq.items()):
         if len(fastq):
