@@ -1,6 +1,5 @@
 biopython
 clint
-cython
 pandas
 pyvcf
 pysam

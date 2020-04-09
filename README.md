@@ -22,17 +22,19 @@ Features include:
 * variant calling
 * consensus building
 
-There are **2 variants** of the pipeline, one which uses signal data (via [nanopolish](https://github.com/jts/nanopolish)) and one that does not (via [medaka](https://github.com/nanoporetech/medaka)).
+There are **2 workflows** baked into this pipeline, one which uses signal data (via [nanopolish](https://github.com/jts/nanopolish)) and one that does not (via [medaka](https://github.com/nanoporetech/medaka)).
 
 ## Installation
 
-### conda
+### Via conda
 
-> coming soon
+```sh
+conda install -c bioconda artic
+```
 
-### source
+### Via source
 
-#### installing the pipeline:
+#### 1. installing the pipeline:
 
 ```sh
 git clone https://github.com/artic-network/fieldbioinformatics
@@ -40,21 +42,16 @@ cd fieldbioinformatics
 python setup.py install
 ```
 
-#### installing dependencies:
+#### 2. installing dependencies:
 
-The `artic pipeline` has several software dependencies. These dependencies are different for the `nanopolish` and `medaka` variants of the pipeline. We have provided some minimal conda environments (for linux and osx) to manage these dependencies.
+The `artic pipeline` has several [software dependencies](https://github.com/artic-network/fieldbioinformatics/blob/master/environment.yml). You can solve these dependencies using the minimal conda environment we have provided:
 
-Unfortunately, the required `nanopolish` and `medaka` versions are not compatible with each other, so **you will need 2 environments** if you want to try both the `nanopolish` and `medaka` variants of the pipeline.
-
-```
-# nanopolish:
-conda env create -f test-data/env-nanopolish.yml && conda activate artic-nanopolish
-
-# medaka:
-conda env create -f test-data/env-medaka.yml && conda activate artic-medaka
+```sh
+conda env create -f environment.yml
+conda activate artic
 ```
 
-#### testing:
+#### 3. testing the pipeline:
 
 First check the pipeline can be called.
 
@@ -71,10 +68,8 @@ pytest -s artic/*_unit_test.py
 You can also try the functional tests.
 
 ```
+pytest -s artic/*_medaka_test.py
 ./test-runner.sh nanopolish
-
-or
-
 ./test-runner.sh medaka
 ```
 
