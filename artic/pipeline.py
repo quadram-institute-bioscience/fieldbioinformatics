@@ -30,6 +30,8 @@ def run_subtool(parser, args):
         from . import run as submodule
     if args.command == 'guppyplex':
         from . import guppyplex as submodule
+    if args.command == 'export':
+        from . import export as submodule
 
     # run the chosen submodule.
     submodule.run(parser, args)
@@ -179,6 +181,16 @@ def init_pipeline_parser():
     parser_rampart.add_argument('--run-directory', metavar='run_directory',
                                 help='The run directory', default='/var/lib/MinKNOW/data')
     parser_rampart.set_defaults(func=run_subtool)
+
+    # export
+    parser_export = subparsers.add_parser(
+        'export', help='Export reads and fAST5 into a neat archive')
+    parser_export.add_argument('prefix')
+    parser_export.add_argument('bamfile')
+    parser_export.add_argument('sequencing_summary')
+    parser_export.add_argument('fast5_directory')
+    parser_export.add_argument('output_directory')
+    parser_export.set_defaults(func=run_subtool)
 
     # run
     parser_run = subparsers.add_parser(
