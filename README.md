@@ -65,12 +65,18 @@ Now try the unit tests.
 pytest -s artic/*_unit_test.py
 ```
 
-You can also try the functional tests.
+You can try the pipeline tests.
 
 ```
-pytest -s artic/*_medaka_test.py
 ./test-runner.sh nanopolish
 ./test-runner.sh medaka
+```
+
+Finally, you can download test nCov datasets and run the variant validations.
+
+```
+pytest -s artic/minion_medaka_validator.py --remote-data
+pytest -s artic/minion_nanopolish_validator.py --remote-data
 ```
 
 

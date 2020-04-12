@@ -1,5 +1,9 @@
 biopython
 clint
 pandas
-pyvcf
 pysam
+pytest
+pytest-remotedata
+pyvcf
+requests
+tqdm

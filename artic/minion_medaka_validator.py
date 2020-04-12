@@ -13,56 +13,71 @@ NOTE:
     * only a basic grep is used for checking the deletion in the consensus - test will fail if deletion sequence is present multiple times (I should improve this part of the test...)
 
 """
-import argparse
 from Bio import SeqIO
+from tqdm.auto import tqdm
+import argparse
+import errno
 import glob
 import os
 import pytest
+import requests
 import sys
+import tarfile
 import vcf
 
-from . import pipeline
 
+from . import pipeline
 
 # help pytest resolve where test data is kept
 TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 
+# dataDir is where to store the test data locally
+dataDir = TEST_DIR + "/../test-data/"
 
-# testData
-## the outer dict is sampleID -> dict of expected variants
-## the inner dict is variant position -> a tuple of (ref, alt, type)
+# testData is a lookup of sampleIDs to download urls
 testData = {
+    "MT007544": "https://raw.githubusercontent.com/artic-network/fieldbioinformatics/master/test-data/MT007544/MT007544.fastq",
+    "CVR1": "https://artic.s3.climb.ac.uk/validation-sets/CVR1.tgz",
+}
+
+# testVariants is a nested dict of sample IDs and their expected variants
+testVariants = {
     "MT007544":
         {
-            29749: ("ACGATCGAGTG", 'A', "del")
+            # pos: (ref, alt, type, count)
+            29749: ["ACGATCGAGTG", 'A', "del", 1]
         },
     "CVR1":
         {
-            241: ('C', 'T', "snp"),
-            3037: ('C', 'T', "snp"),
-            12733: ('C', 'T', "snp"),
-            14408: ('C', 'T', "snp"),
-            23403: ('A', 'G', "snp"),
-            27752: ('C', 'T', "snp")
+            241: ['C', 'T', "snp", 1],
+            3037: ['C', 'T', "snp", 1],
+            12733: ['C', 'T', "snp", 1],
+            12733: ['C', 'T', "snp", 2], # this is reported twice due to pool groups
+            14408: ['C', 'T', "snp", 1],
+            23403: ['A', 'G', "snp", 1],
+            27752: ['C', 'T', "snp", 1],
+            28881: ('G', 'AAC', "snp"),
         },
-    "NRW01":
-        {
-            1440: ('G', 'A', "snp"),
-            2891: ('G', 'A', "snp"),
-            4655: ('C', 'T', "snp"),
-            8422: ('G', 'A', "snp"),
-            22323: ('C', 'G', "snp"),
-            29546: ('C', 'A', "snp")
-        },
-    "SP1":
-        {
-            241: ('C', 'T', "snp"),
-            3037: ('C', 'T', "snp"),
-            14408: ('C', 'T', "snp"),
-            23403: ('A', 'G', "snp")
-        }
 }
 
+# dataChecker will download the test data if not present
+@pytest.fixture(scope="session", autouse=True)
+def dataChecker():
+    print("checking for test data...")
+    for sampleID, url in testData.items():
+        targetPath = dataDir + sampleID
+        if os.path.exists(targetPath) == False:
+            print("\tno data for {}" .format(sampleID))
+            print("\tmaking dir at {}" .format(targetPath))
+            os.mkdir(targetPath)
+            print("\tdownloading from {}" .format(url))
+            try:
+                download(url, dataDir, sampleID)
+            except Exception as e:
+                print("download failed: ", e)
+                sys.exit(1)
+        else:
+            print("\tfound data dir for {}" .format(sampleID))
 
 # genCommand will create the medaka minion command
 def genCommand(sampleID):
@@ -70,7 +85,7 @@ def genCommand(sampleID):
         "minion",
         "--medaka",
         "--read-file",
-        TEST_DIR + "/../test-data/" + sampleID + "/fastq_pass/*.fastq",
+        TEST_DIR + "/../test-data/" + sampleID + "/*.fast[aq]",
         "--scheme-directory",
         TEST_DIR + "/../test-data/primer-schemes",
         "nCoV-2019/V1",
@@ -94,9 +109,10 @@ def checkConsensus(consensusFile, subSeq):
     return 0
 
 # test_MedakaMinion is the unit test runner to test the minion pipeline in medaka mode
+@pytest.mark.remote_data
 def test_MedakaMinion():
 
-    for sampleID, expVariants in testData.items():
+    for sampleID, expVariants in testVariants.items():
 
         # generate the command
         cmd = genCommand(sampleID)
@@ -144,10 +160,12 @@ def test_MedakaMinion():
                 if expVariants[record.POS][2] == "snp":
                     assert record.is_snp, "snp for {} not formatted correctly in VCF" .format(sampleID)
 
-                # remove the variant from the expected list, so we can keep track of checked variants
-                del expVariants[record.POS]
+                # decrement/remove the variant from the expected list, so we can keep track of checked variants
+                expVariants[record.POS][3] -= 1
+                if (expVariants[record.POS][3] == 0):
+                    del expVariants[record.POS]
             else:
-                print("unexpected variant found for {}: {} at {}" .format(sampleID, record.ALT.sequence, record.POS))
+                print("unexpected variant found for {}: {} at {}" .format(sampleID, str(record.ALT[0]), record.POS))
                 assert False       
 
         # check we've confirmed all the expected variants         
@@ -160,5 +178,21 @@ def test_MedakaMinion():
         # clean up pipeline files
         cleanUp(sampleID)
 
-        # temp break command so that we only test the first sample -- waiting on the data for the other samples
-        break
+
+def download(url, dataDir, sampleID):
+    filename = url.rsplit('/', 1)[1] 
+    with open(f'{dataDir}/{filename}', 'wb+') as f:
+        response = requests.get(url, stream=True)
+        total = int(response.headers.get('content-length'))
+        if total is None:
+            f.write(response.content)
+        else:
+            with tqdm(total=total, unit='B', unit_scale=True, desc=filename) as pbar:
+                for data in tqdm(response.iter_content(chunk_size=1024)):
+                    f.write(data)
+                    pbar.update(1024)
+
+    tar = tarfile.open(dataDir + "/" + filename, "r:gz")
+    tar.extractall(dataDir)
+    tar.close()
+    os.remove(dataDir + "/" + filename)

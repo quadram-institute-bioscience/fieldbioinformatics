@@ -27,11 +27,12 @@ script:
   # run the unit tests
   - pytest -s artic/*_unit_test.py
 
-  # run the medaka-specific functional tests
-  - pytest -s artic/*_medaka_test.py
-
   # run the pipeline test for the medaka pipeline variant
   - ./test-runner.sh medaka
 
   # run the pipeline test for the nanopolish pipeline variant
   - ./test-runner.sh nanopolish
+
+  # run the variant set validation functional tests (will download test data)
+  - pytest -s artic/minion_medaka_validator.py --remote-data
+  - pytest -s artic/minion_nanopolish_validator.py --remote-data
