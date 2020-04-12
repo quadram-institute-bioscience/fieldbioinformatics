@@ -65,11 +65,29 @@ def go(args):
         print("Please specify a VCF type, i.e. --nanopolish or --medaka\n")
         raise SystemExit
 
-    for v in vcf_reader:
+    variants = [v for v in vcf_reader]
+
+    group_variants = defaultdict(list)
+    for v in variants:
+        indx = "%s-%s" % (v.CHROM, v.POS)
+        group_variants[indx].append(v)
+    
+    for v in variants:
         if filter.check_filter(v):
             vcf_writer.write_record(v)
         else:
-            vcf_writer_filtered.write_record(v)
+            variant_passes = False
+
+            indx = "%s-%s" % (v.CHROM, v.POS)
+            if len(group_variants[indx]) > 1:
+                for check_variant in group_variants[indx]:
+                    if filter.check_filter(check_variant):
+                        variant_passes = True 
+            
+            if not variant_passes:
+                vcf_writer_filtered.write_record(v)
+            else:
+                print ("Suppress variant %s\n" % (v.POS))
 
 def main():
     import argparse
