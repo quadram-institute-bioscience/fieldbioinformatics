@@ -160,6 +160,8 @@ def init_pipeline_parser():
         '--prefix', help='Prefix for guppyplex files')
     parser_guppyplex.add_argument('--run-directory', metavar='run_directory',
                                   help='The run directory', default='/var/lib/MinKNOW/data')
+    parser_guppyplex.add_argument('--output', metavar='output',
+                                  help='FASTQ file to write')
     parser_guppyplex.set_defaults(func=run_subtool)
 
     # filter
