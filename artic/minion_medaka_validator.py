@@ -56,7 +56,7 @@ testVariants = {
             14408: ['C', 'T', "snp", 1],
             23403: ['A', 'G', "snp", 1],
             27752: ['C', 'T', "snp", 1],
-            28881: ('G', 'AAC', "snp"),
+            28881: ['GGG', 'AAC', "indel", 1],
         },
 }
 
@@ -148,13 +148,17 @@ def test_MedakaMinion():
             if record.POS in expVariants:
                 assert record.REF == expVariants[record.POS][0], "incorrect REF reported in VCF for {} at position {}" .format(sampleID, record.POS)
                 assert str(record.ALT[0]) == expVariants[record.POS][1], "incorrect ALT reported in VCF for {} at position {}" .format(sampleID, record.POS)
-                
+
                 # if this is an expected deletion, check the consensus sequence for it's absence
                 if expVariants[record.POS][2] == "del":
                     assert checkConsensus(consensusFile, record.REF) == 0, "expected deletion for {} was reported but was left in consensus" .format(sampleID)
 
                     # also check that the VCF record is correctly labelled as DEL
                     assert record.is_deletion, "deletion for {} not formatted correctly in VCF" .format(sampleID)
+
+                # if this is an expected indel, check that the VCF record is correctly labelled as INDEL
+                if expVariants[record.POS][2] == "indel":
+                    assert record.is_indel, "indel for {} not formatted correctly in VCF" .format(sampleID)
 
                 # else, check that the VCF record is correctly labelled as SNP
                 if expVariants[record.POS][2] == "snp":
@@ -177,7 +181,6 @@ def test_MedakaMinion():
 
         # clean up pipeline files
         cleanUp(sampleID)
-
 
 def download(url, dataDir, sampleID):
     filename = url.rsplit('/', 1)[1] 
