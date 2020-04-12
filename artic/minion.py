@@ -86,7 +86,7 @@ def run(parser, args):
         for p in pools:
             if os.path.exists("%s.%s.hdf" % (args.sample, p)):
                 os.remove("%s.%s.hdf" % (args.sample, p))
-            cmds.append("medaka consensus %s.primertrimmed.%s.sorted.bam %s.%s.hdf" % (args.sample, p, args.sample, p))
+            cmds.append("medaka consensus --chunk_len 800 --chunk_ovlp 400 %s.primertrimmed.%s.sorted.bam %s.%s.hdf" % (args.sample, p, args.sample, p))
             cmds.append("medaka variant %s %s.%s.hdf %s.%s.vcf" % (ref, args.sample, p, args.sample, p))
     else:
         if not args.skip_nanopolish:
