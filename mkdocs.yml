@@ -6,6 +6,7 @@ nav:
   - "User Guide":
       - "Installation": "installation.md"
       - "Quick Start": "quick-start.md"
+      - "Tests": "tests.md"
   - About:
       - "FAQ": "faq.md"
       - "License": "license.md"
