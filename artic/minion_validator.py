@@ -299,11 +299,11 @@ def runner(workflow, numValidations):
         counter -= 1
 
 # test_NanopolishMinion is the unit test runner to test the minion pipeline with the nanopolish workflow
-@pytest.mark.nanopolish
+@pytest.mark.env("nanopolish")
 def test_NanopolishMinion(numValidations):
     runner("nanopolish", numValidations)
 
 # test_MedakaMinion is the unit test runner to test the minion pipeline with the medaka workflow
-@pytest.mark.medaka
+@pytest.mark.env("medaka")
 def test_MedakaMinion(numValidations):
     runner("medaka", numValidations)

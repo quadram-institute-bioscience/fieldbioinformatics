@@ -34,5 +34,5 @@ script:
   - ./test-runner.sh nanopolish
 
   # run some of the variant set validation functional tests (will download test data)
-  - pytest -s artic/minion_validator.py -m nanopolish --numValidations 1
-  - pytest -s artic/minion_validator.py -m medaka --numValidations 2
+  - pytest -s artic/minion_validator.py --workFlow nanopolish --numValidations 1
+  - pytest -s artic/minion_validator.py --workFlow medaka --numValidations 2

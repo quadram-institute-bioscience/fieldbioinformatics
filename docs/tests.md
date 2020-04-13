@@ -48,9 +48,9 @@ pytest -s artic/minion_validator.py
 Or you can specify which workflow and how many datasets to validate against:
 
 ```
-pytest -s artic/minion_validator.py -m medaka --numValidations 2
+pytest -s artic/minion_validator.py --workFlow medaka --numValidations 2
 ```
 
-> use -m to specify workflow (medaka|nanopolish)
+> use --workFlows to specify workflow (medaka|nanopolish)
 
 > use --numValidations to specify how many datasets to download and validate against (specifing -1 or too high a number will just run all the datasets)
