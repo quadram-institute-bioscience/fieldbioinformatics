@@ -38,6 +38,8 @@ dataDir = TEST_DIR + "/../test-data/"
 testData = {
     "MT007544": "https://raw.githubusercontent.com/artic-network/fieldbioinformatics/master/test-data/MT007544/MT007544.fastq",
     "CVR1": "https://artic.s3.climb.ac.uk/validation-sets/CVR1.tgz",
+    "NRW01": "http://artic.s3.climb.ac.uk/validation-teams/NRW01.tgz",
+    "SP1": "http://artic.s3.climb.ac.uk/validation-teams/SP1.tgz"
 }
 
 # testVariants is a nested dict of sample IDs and their expected variants
@@ -53,6 +55,22 @@ testVariants = {
             28881: ['G', 'A', "snp", 1],
             28882: ['G', 'A', "snp", 1],
             28883: ['G', 'C', "snp", 1]
+        },
+    "NRW01":
+        {
+            1440: ['G', 'A', "snp", 1],
+            2891: ['G', 'A', "snp", 1],
+            4655: ['C', 'T', "snp", 2],
+            8422: ['G', 'A', "snp", 1],
+            22323: ['C', 'G', "snp", 1],
+            29546: ['C', 'A', "snp", 1]
+        },
+    "SP1":
+        {
+            241: ['C', 'T', "snp", 1],
+            3037: ['C', 'T', "snp", 1],
+            14408: ['C', 'T', "snp", 1],
+            23403: ['A', 'G', "snp", 1]
         },
 }
 
