@@ -111,16 +111,9 @@ medakaTestVariants = {
         },
 }
 
-# dataChecker will run before the tests and download the test datasets if not present
+# dataChecker will run before the tests and download all the test datasets if not present
 @pytest.fixture(scope="session", autouse=True)
 def dataChecker(numValidations):
-
-    # check the number of validation datasets requested
-    counter = numValidations
-    if (numValidations < 0) or (numValidations > len(testData)):
-        counter = len(testData)
-
-    # check for datasets and download if needed
     print("checking for validation datasets...")
     for sampleID, url in testData.items():
         if counter == 0:
@@ -138,7 +131,6 @@ def dataChecker(numValidations):
                 sys.exit(1)
         else:
             print("\tfound data dir for {}" .format(sampleID))
-        counter -= 1
     print("validation datasets ready\n")
 
 # download will download and untar a test dataset
