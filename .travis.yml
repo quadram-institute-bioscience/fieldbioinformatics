@@ -1,34 +1,38 @@
 dist: xenial
-language: python
-python:
-  - "3.6"
+language: python            # this works for Linux but is an error on macOS or Windows
+jobs:
+  include:
+    - name: "Python 3.6 on Xenial Linux"
+      python: 3.6           # this works for Linux but is ignored on macOS or Windows
+    - name: "Python 3.6 on macOS"
+      os: osx
+      language: shell       # 'language: python' is an error on Travis CI macOS
+      python: 3.6
+
 install:
-  - sudo apt-get update
-  - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
-    wget https://repo.continuum.io/miniconda/Miniconda2-latest-Linux-x86_64.sh -O miniconda.sh;
-    else
-    wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
-    fi
-  - bash miniconda.sh -b -p $HOME/miniconda
+
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then MINICONDA_OS=Linux; else MINICONDA_OS=MacOSX; fi
+  - wget https://repo.anaconda.com/miniconda/Miniconda3-latest-$MINICONDA_OS-x86_64.sh -O miniconda.sh
+  - bash miniconda.sh -b -p "$HOME"/miniconda
   - source "$HOME/miniconda/etc/profile.d/conda.sh"
   - hash -r
   - conda config --set always_yes yes --set changeps1 no
   - conda update -q conda
   - conda info -a
   - conda env create -f environment.yml
-  - conda env create -f environment-medaka.yml
-  - conda activate fieldbioinformatics
+  - conda activate artic
   - python setup.py install
 
 script:
   # run the unit tests
   - pytest -s artic/*_unit_test.py
-  # run the pipeline test for the nanopolish pipeline variant (already in the correct env)
-  - ./test-runner.sh nanopolish
-  # swap to the medaka env and install the pipeline to this env
-  - conda deactivate && conda activate fieldbioinformatics-medaka
-  - python setup.py install
-  # run the medaka-specific functional tests
-  - pytest -s artic/*_medaka_test.py
+
   # run the pipeline test for the medaka pipeline variant
   - ./test-runner.sh medaka
+
+  # run the pipeline test for the nanopolish pipeline variant
+  - ./test-runner.sh nanopolish
+
+  # run the variant set validation functional tests (will download test data)
+  - pytest -s artic/minion_medaka_validator.py --remote-data
+  - pytest -s artic/minion_nanopolish_validator.py --remote-data

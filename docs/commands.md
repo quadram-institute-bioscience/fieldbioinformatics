@@ -1,13 +1,17 @@
 ---
 title: commands
-summary: The index page for the documentation.
+summary: The available artic pipeline commands.
 authors:
   - Will Rowe
   - Nick Loman
 date: 2020-03-30
 ---
 
-# export
+# Commands
+
+This page documents the available commands via the `artic pipeline` command line interface.
+
+## export
 
 The export command is used to make a redistributable package of data for
 re-analysis. This includes the FASTQ file, the sequencing summary and

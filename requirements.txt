@@ -1,6 +1,9 @@
 biopython
 clint
-cython
 pandas
-pyvcf
 pysam
+pytest
+pytest-remotedata
+pyvcf
+requests
+tqdm
