@@ -1,10 +1,19 @@
+---
+title: faq
+summary: The FAQ.
+authors:
+  - Will Rowe
+  - Nick Loman
+date: 2020-03-30
+---
+
 # FAQ
 
-### Lab-on-an-SSD
+## Lab-on-an-SSD
 
 Please refer to [the ARTIC website](https://artic.network/lab-on-an-SSD) for more information about lab-on-SSD.
 
-### Adding this repository as a submodule of another
+## Adding this repository as a submodule of another
 
 Within the parent repo add the submodule:
 

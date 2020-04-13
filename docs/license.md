@@ -1,3 +1,14 @@
+---
+title: license
+summary: The MIT license.
+authors:
+  - Will Rowe
+  - Nick Loman
+date: 2020-03-30
+---
+
+# MIT License
+
 Copyright (c) 2017-2018 Nick Loman & the ZiBRA Project & the ARTIC project
 
 Permission is hereby granted, free of charge, to any person obtaining a copy

@@ -7,7 +7,9 @@ authors:
 date: 2020-03-30
 ---
 
-All of the ARTIC tests are run as part of the Travis Continuous Integration testing. To run any of the tests yourself, it is assumed that you have downloaded the codebase and are using an appropiate environment:
+# The test suite
+
+All of the ARTIC pipeline tests are run as part of the Travis Continuous Integration testing. To run any of the tests yourself, it is assumed that you have downloaded the codebase and are using an appropiate environment:
 
 ```
 git clone https://github.com/artic-network/fieldbioinformatics
@@ -26,7 +28,7 @@ pytest -s artic/*_unit_test.py
 
 ## Pipeline tests
 
-To test the complete workflow, as described in the [nCov SOP](https://artic.network/ncov-2019/ncov2019-bioinformatics-sop.html), you can use the `test-runner.sh` bash script. You can test both the medaka and nanopolish workflows:
+To test the complete pipeline, as described in the [nCov SOP](https://artic.network/ncov-2019/ncov2019-bioinformatics-sop.html), you can use the `test-runner.sh` bash script. You can test both the medaka and nanopolish workflows:
 
 ```
 ./test-runner.sh medaka

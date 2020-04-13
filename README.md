@@ -71,6 +71,6 @@ For further tests, such as the variant validation tests, check [the documentatio
 
 ## Documentation
 
-For documentation and getting started, see the [SOP on the artic website](https://artic.network/ncov-2019/ncov2019-bioinformatics-sop.html).
+Documentation for the `artic pipeline` is available via [read the docs](http://artic.readthedocs.io/en/latest/?badge=latest).
 
-Documentation via [read the docs](http://artic.readthedocs.io/en/latest/?badge=latest) is being written and will be available soon.
+For nCov work, see the [SOP on the artic website](https://artic.network/ncov-2019/ncov2019-bioinformatics-sop.html).
