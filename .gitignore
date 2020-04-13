@@ -23,3 +23,7 @@ scripts/illumina/db/*fa.*
 *.bak
 dist/
 *.egg-info/
+
+# test data
+*.index*
+CVR1/

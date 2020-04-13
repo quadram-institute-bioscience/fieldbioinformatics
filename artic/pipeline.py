@@ -25,11 +25,9 @@ def run_subtool(parser, args):
     if args.command == 'rampart':
         from . import rampart as submodule
     if args.command == 'filter':
-        from . import filter as submodule
+        from . import filter_reads as submodule
     if args.command == 'run':
         from . import run as submodule
-    if args.command == 'guppyplex':
-        from . import guppyplex as submodule
     if args.command == 'export':
         from . import export as submodule
 
@@ -92,7 +90,7 @@ def init_pipeline_parser():
     parser_demultiplex.set_defaults(func=run_subtool)
 
     # minion
-    parser_minion = subparsers.add_parser('minion', help='Run demultiplex')
+    parser_minion = subparsers.add_parser('minion', help='Run the alignment/variant-call/consensus pipeline')
     parser_minion.add_argument(
         'scheme', metavar='scheme', help='The name of the scheme.')
     parser_minion.add_argument(

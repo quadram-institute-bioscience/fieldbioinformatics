@@ -1,9 +1,10 @@
 #Written by Nick Loman (@pathogenomenick)
 
+from clint.textui import colored, puts, indent
+from Bio import SeqIO
 import os
 import sys
-from Bio import SeqIO
-from clint.textui import colored, puts, indent
+import time
 from .vcftagprimersites import read_bed_file
 
 def get_nanopolish_header(ref):
@@ -128,12 +129,18 @@ def run(parser, args):
 
     for cmd in cmds:
         print(colored.green("Running: ") + cmd, file=sys.stderr)
-        print(cmd, file=logfh)
         if not args.dry_run:
+            timerStart = time.perf_counter()
             retval = os.system(cmd)
             if retval != 0:
                 print(colored.red('Command failed:' ) + cmd, file=sys.stderr)
                 raise SystemExit(20)
+            timerStop = time.perf_counter()
 
+            # print the executed command and the runtime to the log file
+            print("{}\t{}" .format(cmd, timerStop-timerStart), file=logfh)
+        
+        # if it's a dry run, print just the command
+        else:
+            print(cmd, file=logfh)
     logfh.close()
-

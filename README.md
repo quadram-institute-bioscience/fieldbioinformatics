@@ -1,6 +1,6 @@
 <div align="center">
-    <h1>ARTIC bioinformatics pipeline</h1>
-    <h3>a pipeline for working with virus sequencing data sequenced with nanopore</h3>
+    <h1>ARTIC pipeline</h1>
+    <h3>a bioinformatics pipeline for working with virus sequencing data sequenced with nanopore</h3>
     <hr>
     <a href="https://travis-ci.org/artic-network/fieldbioinformatics"><img src="https://travis-ci.org/artic-network/fieldbioinformatics.svg?branch=master" alt="travis"></a>
     <a href='http://artic.readthedocs.io/en/latest/?badge=latest'><img src='https://readthedocs.org/projects/artic/badge/?version=latest' alt='Documentation Status'></a>
@@ -12,15 +12,29 @@
 
 ## Overview
 
-> coming soon
+The `artic pipeline` is designed to help run the artic bioinformatics protocols; for example the [nCoV-2019 novel coronavirus protocol](https://artic.network/ncov-2019/ncov2019-bioinformatics-sop.html).
+
+Features include:
+
+* read filtering
+* primer trimming
+* amplicon coverage normalisation
+* variant calling
+* consensus building
+
+There are **2 workflows** baked into this pipeline, one which uses signal data (via [nanopolish](https://github.com/jts/nanopolish)) and one that does not (via [medaka](https://github.com/nanoporetech/medaka)).
 
 ## Installation
 
-### conda
+### Via conda
 
-> coming soon
+```sh
+conda install -c bioconda artic
+```
 
-### source
+### Via source
+
+#### 1. installing the pipeline:
 
 ```sh
 git clone https://github.com/artic-network/fieldbioinformatics
@@ -28,24 +42,35 @@ cd fieldbioinformatics
 python setup.py install
 ```
 
-> note: there are a few dependencies required - there are a couple of minimal conda environments provided in this repository:
+#### 2. installing dependencies:
 
-- for running the nanopolish version of the pipeline:
-
-```sh
-  conda env create -f environment.yml
-  conda activate fieldbioinformatics
-```
-
-- for running the medaka version of the pipeline:
+The `artic pipeline` has several [software dependencies](https://github.com/artic-network/fieldbioinformatics/blob/master/environment.yml). You can solve these dependencies using the minimal conda environment we have provided:
 
 ```sh
-  conda env create -f environment-medaka.yml
-  conda activate fieldbioinformatics-medaka
+conda env create -f environment.yml
+conda activate artic
 ```
+
+#### 3. testing the pipeline:
+
+First check the pipeline can be called.
+
+```
+artic -v
+```
+
+You can try the pipeline tests.
+
+```
+./test-runner.sh nanopolish
+./test-runner.sh medaka
+```
+
+For further tests, such as the variant validation tests, check [the documentation](http://artic.readthedocs.io/en/latest/tests?badge=latest).
+
 
 ## Documentation
 
-For documentation and getting started, see the [SOP on the artic website](https://artic.network/ncov-2019/ncov2019-bioinformatics-sop.html).
+Documentation for the `artic pipeline` is available via [read the docs](http://artic.readthedocs.io/en/latest/?badge=latest).
 
-Documentation via [read the docs](http://artic.readthedocs.io/en/latest/?badge=latest) is being written and will be available soon.
+For nCov work, see the [SOP on the artic website](https://artic.network/ncov-2019/ncov2019-bioinformatics-sop.html).
