@@ -4,8 +4,22 @@ from operator import attrgetter
 from collections import defaultdict
 from .vcftagprimersites import read_bed_file
 
+def in_frame(v):
+    if len(v.ALT) > 1:
+       print ("This code does not support multiple genotypes!")
+       raise SystemExit
+    ref = v.REF
+    alt = v.ALT[0]
+    bases = len(alt) - len(ref)
+    if not bases:
+       return True
+    if bases % 3 == 0:
+       return True
+    return False
+
 class NanoporeFilter:
-    def __init__(self, *args, **kwargs):
+    def __init__(self, no_frameshifts):
+        self.no_frameshifts = no_frameshifts
         pass
 
     def check_filter(self, v):
@@ -16,14 +30,7 @@ class NanoporeFilter:
         if qual / total_reads < 3:
             return False
 
-        if len(v.ALT) > 1:
-            print ("This code does not support multiple genotypes!")
-            raise SystemExit
-
-        ref = v.REF
-        alt = v.ALT[0]
-
-        if (len(alt) - len(ref) % 3):
+        if self.no_frameshifts and not in_frame(v):
             return False
 
         if v.is_indel:
@@ -40,31 +47,27 @@ class NanoporeFilter:
         return True
 
 class MedakaFilter:
-    def __init__(self, *args, **kwargs):
-        pass
+    def __init__(self, no_frameshifts):
+        self.no_frameshifts = no_frameshifts
 
     def check_filter(self, v):
+        if self.no_frameshifts and not in_frame(v):
+            return False
+
         if v.num_het:
             return False
         return True
 
 class LongshotFilter:
-    def __init__(self, *args, **kwargs):
-        pass
+    def __init__(self, no_frameshifts):
+        self.no_frameshifts = no_frameshifts
 
     def check_filter(self, v):
         depth = v.INFO['DP']
         if depth < 20:
             return False
 
-        if len(v.ALT) > 1:
-            print ("This code does not support multiple genotypes!")
-            raise SystemExit
-
-        ref = v.REF
-        alt = v.ALT[0]
-
-        if (len(alt) - len(ref) % 3):
+        if self.no_frameshifts and not in_frame(v):
             return False
 
         if v.num_het:
@@ -76,11 +79,11 @@ def go(args):
     vcf_writer = vcf.Writer(open(args.output_pass_vcf, 'w'), vcf_reader)
     vcf_writer_filtered = vcf.Writer(open(args.output_fail_vcf, 'w'), vcf_reader)
     if args.nanopolish:
-        filter = NanoporeFilter()
+        filter = NanoporeFilter(args.no_frameshifts)
     elif args.medaka:
-        filter = MedakaFilter()
+        filter = MedakaFilter(args.no_frameshifts)
     elif args.longshot:
-        filter = LongshotFilter()
+        filter = LongshotFilter(args.no_frameshifts)
     else:
         print("Please specify a VCF type, i.e. --nanopolish or --medaka\n")
         raise SystemExit
@@ -116,6 +119,7 @@ def main():
     parser.add_argument('--nanopolish', action='store_true')
     parser.add_argument('--medaka', action='store_true')
     parser.add_argument('--longshot', action='store_true')
+    parser.add_argument('--no-frameshifts', action='store_true')
     parser.add_argument('inputvcf')
     parser.add_argument('output_pass_vcf')
     parser.add_argument('output_fail_vcf')
