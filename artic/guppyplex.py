@@ -28,43 +28,45 @@ def get_read_mean_quality(record):
 
 
 def run(parser, args):
-    fastq = defaultdict(list)
     files = os.listdir(args.directory)
-    fastq[args.directory].extend([os.path.join(args.directory, f) for f in files if fnmatch.fnmatch(f, '*.fastq*') and not f.endswith('.temp')])
+    fastq_files = [os.path.join(args.directory, f) for f in files if fnmatch.fnmatch(f, '*.fastq*') and not f.endswith('.temp')]
 
-    for barcode_directory, fastq in list(fastq.items()):
-        if len(fastq):
+    if fastq_files:
+        if not args.output:
             fastq_outfn = "%s_%s.fastq" % (args.prefix, os.path.basename(barcode_directory))
-            outfh = open(fastq_outfn, "w")
-            print("Processing %s files in %s" % (len(fastq), barcode_directory), file=sys.stderr)
+        else:
+            fastq_outfn = args.output
 
-            dups = set()
+        outfh = open(fastq_outfn, "w")
+        print("Processing %s files in %s" % (len(fastq_files), args.directory), file=sys.stderr)
 
-            for file in fastq:
-                encoding = guess_type(file)[1]
-                _open = open
-                # only accommodating gzip compression at present
-                if encoding == "gzip":
-                    _open = partial(gzip.open, mode="rt")
-                with _open(file) as f:
-                    try:
-                        for rec in SeqIO.parse(f, "fastq"):
-                            if args.max_length and len(rec) > args.max_length:
-                                continue
-                            if args.min_length and len(rec) < args.min_length:
-                                continue
-                            if not args.skip_quality_check and get_read_mean_quality(rec) < args.quality:
-                                continue
-                            if args.sample < 1:
-                                r = random()
-                                if r >= args.sample:
-                                    continue
+        dups = set()
 
-                            if rec.id not in dups:
-                                SeqIO.write([rec], outfh, "fastq")
-                                dups.add(rec.id)
-                    except ValueError:
-                       pass
+        for fn in fastq_files:
+            encoding = guess_type(fn)[1]
+            _open = open
+            # only accommodating gzip compression at present
+            if encoding == "gzip":
+                _open = partial(gzip.open, mode="rt")
+            with _open(fn) as f:
+                try:
+                    for rec in SeqIO.parse(f, "fastq"):
+                       if args.max_length and len(rec) > args.max_length:
+                           continue
+                       if args.min_length and len(rec) < args.min_length:
+                           continue
+                       if not args.skip_quality_check and get_read_mean_quality(rec) < args.quality:
+                           continue
+                       if args.sample < 1:
+                           r = random()
+                           if r >= args.sample:
+                              continue
 
-            outfh.close()
-            print(f"{fastq_outfn}\t{len(dups)}")
+                       if rec.id not in dups:
+                           SeqIO.write([rec], outfh, "fastq")
+                           dups.add(rec.id)
+                except ValueError:
+                    pass
+
+        outfh.close()
+        print(f"{fastq_outfn}\t{len(dups)}")

@@ -115,6 +115,7 @@ def init_pipeline_parser():
     parser_minion.add_argument(
         '--sequencing-summary', help='Path to Guppy sequencing summary')
     parser_minion.add_argument('--skip-nanopolish', action='store_true')
+    parser_minion.add_argument('--no-indels', action='store_true')
     parser_minion.add_argument('--dry-run', action='store_true')
     parser_minion.set_defaults(func=run_subtool)
 
@@ -158,6 +159,8 @@ def init_pipeline_parser():
         '--prefix', help='Prefix for guppyplex files')
     parser_guppyplex.add_argument('--run-directory', metavar='run_directory',
                                   help='The run directory', default='/var/lib/MinKNOW/data')
+    parser_guppyplex.add_argument('--output', metavar='output',
+                                  help='FASTQ file to write')
     parser_guppyplex.set_defaults(func=run_subtool)
 
     # filter
