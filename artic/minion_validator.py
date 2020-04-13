@@ -116,8 +116,6 @@ medakaTestVariants = {
 def dataChecker(numValidations):
     print("checking for validation datasets...")
     for sampleID, url in testData.items():
-        if counter == 0:
-            break
         targetPath = dataDir + sampleID
         if os.path.exists(targetPath) == False:
             print("\tno data for {}" .format(sampleID))
