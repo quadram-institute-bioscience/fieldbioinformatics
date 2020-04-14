@@ -3,7 +3,6 @@ clint
 pandas
 pysam
 pytest
-pytest-remotedata
 pyvcf
 requests
 tqdm

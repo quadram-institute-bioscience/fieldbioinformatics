@@ -39,9 +39,18 @@ Both tests use a small subset of an Ebola virus amplicon sequencing run (flongle
 
 ## Variant validation tests
 
-Finally, we have also included some validation tests that will download several reference datasets, run the nanopolish/medaka workflows and then validate the reported variants. To run these:
+Finally, we have also included some validation tests that will download several reference datasets, run the nanopolish/medaka workflows and then validate the reported variants. To run all of the available validation datasets:
 
 ```
-pytest -s artic/minion_medaka_validator.py --remote-data
-pytest -s artic/minion_nanopolish_validator.py --remote-data
+pytest -s artic/minion_validator.py
 ```
+
+Or you can specify which workflow and how many datasets to validate against:
+
+```
+pytest -s artic/minion_validator.py --workFlow medaka --numValidations 2
+```
+
+> use --workFlows to specify workflow (medaka|nanopolish)
+
+> use --numValidations to specify how many datasets to download and validate against (specifing -1 or too high a number will just run all the datasets)
