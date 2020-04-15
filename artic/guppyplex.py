@@ -33,7 +33,7 @@ def run(parser, args):
 
     if fastq_files:
         if not args.output:
-            fastq_outfn = "%s_%s.fastq" % (args.prefix, os.path.basename(barcode_directory))
+            fastq_outfn = "%s_%s.fastq" % (args.prefix, os.path.basename(args.directory))
         else:
             fastq_outfn = args.output
 
