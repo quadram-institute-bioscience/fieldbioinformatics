@@ -43,18 +43,30 @@ def collect_depths(bamfile, refName, minDepth, ignoreDeletions):
     # create a depth vector to hold the depths at each reference position
     depths = [0] * bamFile.get_reference_length(refName)
 
+    # create the dict to hold the depths for each readgroup
+    rgDepths = {}
+
     # generate the pileup
     for pileupcolumn in bamFile.pileup(refName, max_depth=10000, truncate=False, min_base_quality=0):
 
         # process the pileup column
         for pileupread in pileupcolumn.pileups:
+
+            # get the read group and init the vector if this is the first time this RG has been seen
+            rg = pileupread.alignment.get_tag('RG')
+            if rg not in rgDepths:
+                rgDepths[rg] = [0] * bamFile.get_reference_length(refName)
+
+            # process the pileup read
             if pileupread.is_refskip:
                 continue
             if pileupread.is_del:
                 if not ignoreDeletions:
                     depths[pileupcolumn.pos] += 1
+                    rgDepths[rg][pileupcolumn.pos] += 1
             elif not pileupread.is_del:
                 depths[pileupcolumn.pos] += 1
+                rgDepths[rg][pileupcolumn.pos] += 1
             else:
                 raise Exception("unhandled pileup read encountered")
 
@@ -64,7 +76,7 @@ def collect_depths(bamfile, refName, minDepth, ignoreDeletions):
 
     # close file and return depth vector
     bamFile.close()
-    return depths
+    return depths, rgDepths
 
 
 # from https://www.geeksforgeeks.org/python-make-a-list-of-intervals-with-sequential-numbers/
@@ -84,8 +96,8 @@ def go(args):
 
     # collect the depths from the pileup, replacing any depth<minDepth with 0
     try:
-        depths = collect_depths(args.bamfile, seqID,
-                                args.depth, args.ignore_deletions)
+        depths, rgDepths = collect_depths(args.bamfile, seqID,
+                                          args.depth, args.ignore_deletions)
     except Exception as e:
         print(e)
         raise SystemExit(1)
@@ -93,6 +105,14 @@ def go(args):
     # check the number of positions in the reported depths matches the reference sequence
     if len(depths) != seqLength:
         print("pileup length did not match expected reference sequence length")
+
+    # print the readgroup depths to individual files if requested
+    if args.store_rg_depths:
+        for rg, depths in rgDepths.items():
+            fh = open(args.outfile + "." + rg + ".depths", 'w')
+            for pos, depth in enumerate(depths):
+                fh.write("%s\t%s\t%d\t%d\n" % (seqID, rg, pos, depth))
+            fh.close()
 
     # create a mask_vector that records reference positions where depth < minDepth
     mask_vector = []
@@ -117,6 +137,9 @@ def main():
     parser.add_argument('--depth', type=int, default=20)
     parser.add_argument('--ignore-deletions', action="store_true", default=False,
                         help="if set, positional depth counts will ignore reads with reference deletions (i.e. evaluates positional depths on ref matches, not read span")
+    parser.add_argument('--store-rg-depths',
+                        action='store_true', default=False,
+                        help='if set, positional depth counts for each readgroup written to file (filename = <outfile>.<readgroup>.depths)')
     parser.add_argument('reference')
     parser.add_argument('bamfile')
     parser.add_argument('outfile')
