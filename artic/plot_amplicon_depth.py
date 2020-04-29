@@ -12,13 +12,15 @@ This has been written for use in the ARTIC pipeline so there are no file checks 
 
 """
 
-import argparse
-import sys
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-
 from .vcftagprimersites import read_bed_file
+import argparse
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import seaborn as sns
+import sys
+
+sns.set_style("ticks")
 
 
 def go(args):
@@ -93,41 +95,44 @@ def go(args):
     # combine the series data from each input file
     newDF = pd.concat(dfs, axis=1)
     newDF.sort_index(axis=0, inplace=True)
+    newDF.reset_index(inplace=True)
 
-    # set up the plot
-    plt.clf()
+    # melt the DF for seaborn
+    newDF = newDF.melt("amplicon", var_name="read group",
+                       value_name="mean amplicon read depth")
+    newDF = newDF.dropna()
 
-    # plot
-    axes = newDF.plot.bar(logy=True,
-                          rot=0,
-                          fontsize=3,
-                          use_index=True,
-                          subplots=True,
-                          sharex=True,
-                          sharey=False,
-                          legend='reverse',
-                          title=[''] * len(args.depthFiles),
-                          grid=None)
+    # plot the bar
+    g = sns.catplot(data=newDF,
+                    x="amplicon",
+                    y="mean amplicon read depth",
+                    hue="read group",
+                    height=4,
+                    aspect=3,
+                    kind="bar",
+                    dodge=False,
+                    legend=False)
+    g.set(yscale="log")
+    plt.legend(loc='upper right')
+    plt.xticks(rotation=45, size=6)
+    barf = args.outFilePrefix + "-barplot.png"
+    g.savefig(barf, dpi=300)
 
-    # add some labels
-    for ax in axes:
-        ax.set_ylabel("mean coverage depth")
-
-        # add dashed marker line at a coverage threshold
-        ax.axhline(y=100, linestyle='dashed',
-                   color='black', linewidth=0.25)
-
-    # save the plot
-    # plt.tight_layout()
-    plt.savefig(args.outFile, dpi=500)
+    # plot the box
+    g = sns.catplot(data=newDF,
+                    x="read group",
+                    y="mean amplicon read depth",
+                    kind="box")
+    boxf = args.outFilePrefix + "-boxplot.png"
+    g.savefig(boxf, dpi=300)
 
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--primerScheme', required=True,
                         help='the ARTIC primer scheme')
-    parser.add_argument('--outFile', default="./amplicon-depth-plot.png",
-                        help='the name to give the output plot file')
+    parser.add_argument('--outFilePrefix', default="./amplicon-depth",
+                        help='the prefix to give the output plot file')
     parser.add_argument(
         "depthFiles", type=argparse.FileType('r'), nargs='+', help='the depth files produced by make_depth_mask.py')
     args = parser.parse_args()

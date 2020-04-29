@@ -6,4 +6,5 @@ pysam
 pytest
 pyvcf
 requests
+seaborn
 tqdm
