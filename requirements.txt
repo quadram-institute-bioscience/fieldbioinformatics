@@ -1,5 +1,6 @@
 biopython
 clint
+matplotlib
 pandas
 pysam
 pytest
