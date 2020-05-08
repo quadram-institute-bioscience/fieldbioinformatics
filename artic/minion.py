@@ -118,7 +118,8 @@ def run(parser, args):
     else:
         cmds.append("artic_vcf_filter --nanopolish %s.merged.vcf %s.pass.vcf %s.fail.vcf" % (args.sample, args.sample, args.sample))
 
-    cmds.append("artic_make_depth_mask %s %s.primertrimmed.rg.sorted.bam %s.coverage_mask.txt" % (ref, args.sample, args.sample))
+    cmds.append("artic_make_depth_mask --store-rg-depths %s %s.primertrimmed.rg.sorted.bam %s.coverage_mask.txt" % (ref, args.sample, args.sample))
+    cmds.append("artic_plot_amplicon_depth --primerScheme %s --outFilePrefix %s %s*.depths" % (bed, args.sample, args.sample))
 
     vcf_file = "%s.pass.vcf" % (args.sample,)
     cmds.append("bgzip -f %s" % (vcf_file))
