@@ -108,7 +108,6 @@ def go(args):
 
     # print the readgroup depths to individual files if requested
     if args.store_rg_depths:
-
         # rg is the readgroup and rgd is the depths per position for this readgroup
         for rg, rgd in rgDepths.items():
             fh = open(args.outfile + "." + rg + ".depths", 'w')
