@@ -26,6 +26,8 @@ def collect_depths(bamfile, refName, minDepth, ignoreDeletions):
     -------
     list
         Index is the reference position, value is the corresponding coverage depth
+    dict
+        Key is readgroup, value is a list of coverage depths where index is the reference position
     """
     # check the BAM file exists
     if not os.path.exists(bamfile):
@@ -46,16 +48,21 @@ def collect_depths(bamfile, refName, minDepth, ignoreDeletions):
     # create the dict to hold the depths for each readgroup
     rgDepths = {}
 
+    # get the read groups and init the depth vectors
+    for rg in bamFile.header['RG']:
+        if rg['ID'] == 'unmatched':
+            continue
+        rgDepths[rg['ID']] = [0] * bamFile.get_reference_length(refName)
+
     # generate the pileup
     for pileupcolumn in bamFile.pileup(refName, max_depth=10000, truncate=False, min_base_quality=0):
 
         # process the pileup column
         for pileupread in pileupcolumn.pileups:
 
-            # get the read group and init the vector if this is the first time this RG has been seen
+            # get the read group for this pileup read and check it's in the BAM header
             rg = pileupread.alignment.get_tag('RG')
-            if rg not in rgDepths:
-                rgDepths[rg] = [0] * bamFile.get_reference_length(refName)
+            assert rg in rgDepths, "alignment readgroup not in BAM header: %s" % rg
 
             # process the pileup read
             if pileupread.is_refskip:
@@ -108,6 +115,7 @@ def go(args):
 
     # print the readgroup depths to individual files if requested
     if args.store_rg_depths:
+
         # rg is the readgroup and rgd is the depths per position for this readgroup
         for rg, rgd in rgDepths.items():
             fh = open(args.outfile + "." + rg + ".depths", 'w')
