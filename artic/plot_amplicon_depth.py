@@ -113,6 +113,7 @@ def go(args):
                     dodge=False,
                     legend=False)
     g.set(yscale="log")
+    g.fig.suptitle(args.sampleID)
     plt.legend(loc='upper right')
     plt.xticks(rotation=45, size=6)
     barf = args.outFilePrefix + "-barplot.png"
@@ -123,6 +124,7 @@ def go(args):
                     x="read group",
                     y="mean amplicon read depth",
                     kind="box")
+    g.fig.suptitle(args.sampleID)
     boxf = args.outFilePrefix + "-boxplot.png"
     g.savefig(boxf, dpi=300)
 
@@ -131,6 +133,8 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--primerScheme', required=True,
                         help='the ARTIC primer scheme')
+    parser.add_argument('--sampleID', required=True,
+                        help='the sample ID for the provided depth files')
     parser.add_argument('--outFilePrefix', default="./amplicon-depth",
                         help='the prefix to give the output plot file')
     parser.add_argument(
