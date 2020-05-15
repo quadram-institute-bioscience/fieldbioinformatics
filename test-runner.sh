@@ -109,7 +109,7 @@ mkdir ${inputData} || exit
 
 # download the data
 echo "downloading the test data..."
-$(curl -s http://artic.s3.climb.ac.uk/run-folders/EBOV_Amplicons_flongle.tar.gz | tar xvf -)
+$(curl -s http://artic.s3.climb.ac.uk/run-folders/EBOV_Amplicons_flongle.tar.gz | tar xvfz -)
 
 # run the correct workflow
 echo "running the pipeline..."
