@@ -21,6 +21,8 @@ primerScheme="IturiEBOV/V1"
 prefix="ebov-mayinga"
 barcode="03"
 threads=2
+downloadCmd="wget http://artic.s3.climb.ac.uk/run-folders/EBOV_Amplicons_flongle.tar.gz"
+extractCmd="tar -vxzf EBOV_Amplicons_flongle.tar.gz"
 
 # pipeline commands
 demultiplexCmd="artic demultiplex \
@@ -106,7 +108,8 @@ mkdir tmp && cd tmp || exit
 
 # download the data
 echo "downloading the test data..."
-$(curl -s http://artic.s3.climb.ac.uk/run-folders/EBOV_Amplicons_flongle.tar.gz | tar -vxz)
+cmdTester $downloadCmd
+cmdTester $extractCmd
 
 # run the correct workflow
 echo "running the pipeline..."
