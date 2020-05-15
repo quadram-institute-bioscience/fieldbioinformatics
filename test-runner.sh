@@ -106,7 +106,7 @@ mkdir tmp && cd tmp || exit
 
 # download the data
 echo "downloading the test data..."
-$(curl -s http://artic.s3.climb.ac.uk/run-folders/EBOV_Amplicons_flongle.tar.gz | tar xvfz -)
+$(curl -s http://artic.s3.climb.ac.uk/run-folders/EBOV_Amplicons_flongle.tar.gz | tar -vxz)
 
 # run the correct workflow
 echo "running the pipeline..."
