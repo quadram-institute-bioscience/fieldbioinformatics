@@ -104,9 +104,6 @@ fi
 # setup a tmp directory to work in
 mkdir tmp && cd tmp || exit
 
-# setup a dir for the data
-mkdir ${inputData} || exit
-
 # download the data
 echo "downloading the test data..."
 $(curl -s http://artic.s3.climb.ac.uk/run-folders/EBOV_Amplicons_flongle.tar.gz | tar xvfz -)
