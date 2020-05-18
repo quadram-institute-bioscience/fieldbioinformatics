@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 #
-# test-runner.sh runs a the entire ARTIC field bioinformatics pipeline using a minimal set
+# test-runner.sh runs a the entire ARTIC field bioinformatics pipeline using a small set
 # of data (the Mayinga barcode from an Ebola amplicon library sequenced on a flongle).
 #
 # full data available: http://artic.s3.climb.ac.uk/run-folders/EBOV_Amplicons_flongle.tar.gz
@@ -9,25 +9,27 @@ set -e
 # usage:
 #       ./test-runner.sh [medaka|nanopolish]
 #
-#   specify either medaka or nanopolish to run the respective variant of the pipeline
+#   specify either medaka or nanopolish to run the respective workflow of the pipeline
 #
 ###########################################################################################
 # Setup the data, commands and the testing function.
 
 # data
-inputData="../test-data/ebov-flongle/"
+inputData="./20190830_1509_MN22126_AAQ411_9efc5448"
 primerSchemes="../test-data/primer-schemes"
 primerScheme="IturiEBOV/V1"
-prefix="ebov"
+prefix="ebov-mayinga"
 barcode="03"
 threads=2
+downloadCmd="wget http://artic.s3.climb.ac.uk/run-folders/EBOV_Amplicons_flongle.tar.gz"
+extractCmd="tar -vxzf EBOV_Amplicons_flongle.tar.gz"
 
 # pipeline commands
 demultiplexCmd="artic demultiplex \
             --threads ${threads} \
             ${prefix}_fastq_pass.fastq"
 
-## nanopolish variant specific
+## nanopolish workflow specific
 gatherCmd_n="artic gather \
         --min-length 400 \
         --max-length 800 \
@@ -45,7 +47,7 @@ minionCmd_n="artic minion \
                 ${primerScheme} \
                 ${prefix}"
 
-## medaka variant specific
+## medaka workflow specific
 gatherCmd_m="artic gather \
         --min-length 400 \
         --max-length 800 \
@@ -79,23 +81,21 @@ function cmdTester {
     if [ $status -ne 0 ]
     then
         echo -e "${RED}FAIL${NC}" >&2
+        exit $status
     else
         echo -e "${GREEN}PASS${NC}" >&2
     fi
     echo
-    return $status
+    return
 }
 
 ###########################################################################################
 # Run the tests.
 
-# setup a tmp directory to work in
-mkdir tmp && cd tmp || exit
-
 # check that nanopolish or medaka is specified
 if [ "$1" == "nanopolish" ] || [ "$1" == "medaka" ]; then
     echo -e "${BLUE}Starting tests...${NC}"
-    echo -e "${BLUE} - using the $1 variant${NC}"
+    echo -e "${BLUE} - using the $1 workflow${NC}"
     echo
 else
     echo "please specify medaka or nanopolish"
@@ -103,7 +103,16 @@ else
     exit 1
 fi
 
-# run the correct variant
+# setup a tmp directory to work in
+mkdir tmp && cd tmp || exit
+
+# download the data
+echo "downloading the test data..."
+cmdTester $downloadCmd
+cmdTester $extractCmd
+
+# run the correct workflow
+echo "running the pipeline..."
 if [ "$1" == "nanopolish" ]
 then
 
@@ -126,11 +135,6 @@ else
     # run the core pipeline with medaka
     cmdTester $minionCmd_m
 fi
-
-
-
-
-
 
 ###########################################################################################
 # Check the output and clean up.
