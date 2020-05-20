@@ -61,6 +61,9 @@ def collect_depths(bamfile, refName, minDepth, ignoreDeletions, warnRGcov):
     # flag to state if BAM file has low readgroup coverage
     lowRGcov = False
 
+    # vector to keep track of low readgroup coverage regions
+    lowRGvec = []
+
     # generate the pileup
     for pileupcolumn in bamFile.pileup(refName, max_depth=10000, truncate=False, min_base_quality=0):
 
@@ -98,11 +101,17 @@ def collect_depths(bamfile, refName, minDepth, ignoreDeletions, warnRGcov):
                 # @NICK: this will mask these regions:
                 # depths[pileupcolumn.pos] = 0
                 lowRGcov = True
+                lowRGvec.append(pileupcolumn.pos)
 
     # if requested, warn if there are regions with low readgroup coverage that pass the combined depth threshold
     if warnRGcov and lowRGcov:
+
+        # get the regions and print warning
+        regions = list(intervals_extract(lowRGvec))
         sys.stderr.write(
             "alignment has unmasked regions where individual readgroup depth < {}: {}\n" .format(minDepth, bamfile))
+        for region in regions:
+            sys.stderr.write("region: %s\n" % str(region).strip('[]'))
 
     # close file and return depth vector
     bamFile.close()
