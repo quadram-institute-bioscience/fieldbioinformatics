@@ -98,8 +98,11 @@ def collect_depths(bamfile, refName, minDepth, ignoreDeletions, warnRGcov):
                 if rgDepths[rg][pileupcolumn.pos] >= minDepth:
                     rgCovCheck += 1
             if rgCovCheck == 0:
-                # @NICK: this will mask these regions:
-                # depths[pileupcolumn.pos] = 0
+
+                # mask the region if it has low coverage in all readgroups
+                depths[pileupcolumn.pos] = 0
+
+                # also record the region so that we can report it if requested
                 lowRGcov = True
                 lowRGvec.append(pileupcolumn.pos)
 
