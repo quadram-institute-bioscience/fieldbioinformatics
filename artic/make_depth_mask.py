@@ -3,9 +3,10 @@ from Bio import SeqIO
 import itertools
 import os
 import pysam
+import sys
 
 
-def collect_depths(bamfile, refName, minDepth, ignoreDeletions):
+def collect_depths(bamfile, refName, minDepth, ignoreDeletions, warnRGcov):
     """Collect read depth of coverage per reference position in a BAM file.
 
     Parameters
@@ -21,6 +22,9 @@ def collect_depths(bamfile, refName, minDepth, ignoreDeletions):
 
     ignoreDeletions : bool
         If true, positional depth counts will ignore reads with reference deletions
+
+    warnRGcov : bool
+        If true, a warning will be issued if the BAM file has pileup regions where coverage for each readgroup < minDepth && combined coverage is > minDepth"
 
     Returns
     -------
@@ -54,6 +58,12 @@ def collect_depths(bamfile, refName, minDepth, ignoreDeletions):
             continue
         rgDepths[rg['ID']] = [0] * bamFile.get_reference_length(refName)
 
+    # flag to state if BAM file has low readgroup coverage
+    lowRGcov = False
+
+    # vector to keep track of low readgroup coverage regions
+    lowRGvec = []
+
     # generate the pileup
     for pileupcolumn in bamFile.pileup(refName, max_depth=10000, truncate=False, min_base_quality=0):
 
@@ -81,6 +91,31 @@ def collect_depths(bamfile, refName, minDepth, ignoreDeletions):
         if depths[pileupcolumn.pos] < minDepth:
             depths[pileupcolumn.pos] = 0
 
+        # if pileupcolumn depth is okay, check that at least one of the readgroups > minDepth
+        else:
+            rgCovCheck = 0
+            for rg in rgDepths:
+                if rgDepths[rg][pileupcolumn.pos] >= minDepth:
+                    rgCovCheck += 1
+            if rgCovCheck == 0:
+
+                # mask the region if it has low coverage in all readgroups
+                depths[pileupcolumn.pos] = 0
+
+                # also record the region so that we can report it if requested
+                lowRGcov = True
+                lowRGvec.append(pileupcolumn.pos)
+
+    # if requested, warn if there are regions with low readgroup coverage that pass the combined depth threshold
+    if warnRGcov and lowRGcov:
+
+        # get the regions and print warning
+        regions = list(intervals_extract(lowRGvec))
+        sys.stderr.write(
+            "alignment has unmasked regions where individual readgroup depth < {}: {}\n" .format(minDepth, bamfile))
+        for region in regions:
+            sys.stderr.write("region: %s\n" % str(region).strip('[]'))
+
     # close file and return depth vector
     bamFile.close()
     return depths, rgDepths
@@ -104,7 +139,7 @@ def go(args):
     # collect the depths from the pileup, replacing any depth<minDepth with 0
     try:
         depths, rgDepths = collect_depths(args.bamfile, seqID,
-                                          args.depth, args.ignore_deletions)
+                                          args.depth, args.ignore_deletions, args.warn_rg_coverage)
     except Exception as e:
         print(e)
         raise SystemExit(1)
@@ -144,6 +179,8 @@ def main():
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--depth', type=int, default=20)
+    parser.add_argument('--warn-rg-coverage', action="store_true", default=False,
+                        help="if set, a warning will be issued if the BAM file has pileup regions where coverage for each readgroup < min. depth BUT the combined coverage is > min. depth")
     parser.add_argument('--ignore-deletions', action="store_true", default=False,
                         help="if set, positional depth counts will ignore reads with reference deletions (i.e. evaluates positional depths on ref matches, not read span")
     parser.add_argument('--store-rg-depths',
