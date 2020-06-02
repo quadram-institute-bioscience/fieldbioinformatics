@@ -15,7 +15,7 @@ NOTE:
 
 """
 from Bio import SeqIO
-from tqdm.auto import tqdm
+import tqdm
 import argparse
 import errno
 import glob
