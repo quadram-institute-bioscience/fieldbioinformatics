@@ -9,10 +9,7 @@ set -e
 # usage:
 #       ./test-runner.sh [medaka|nanopolish]
 #
-#   specify either medaka or nanopolish to run the respective workflow of the pipeline.
-#
-#   the medaka workflow tests guppyplex by tagging it after the original gather and demux
-#   steps (in real-world cases, guppyplex would feed on guppy output instead).
+#   specify either medaka or nanopolish to run the respective workflow of the pipeline
 #
 ###########################################################################################
 # Setup the data, commands and the testing function.
