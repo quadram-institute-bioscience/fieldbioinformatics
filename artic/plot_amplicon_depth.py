@@ -76,8 +76,8 @@ def go(args):
             rg)
 
         # get the amplicon starts for this readgroup
-        amplicons = rgAmplicons[rg]
-        starts = rgStarts[rg]
+        amplicons = sorted(rgAmplicons[rg])
+        starts = sorted(rgStarts[rg])
 
         # bin read depths by amplicon for this readgroup
         df['amplicon'] = pd.cut(
