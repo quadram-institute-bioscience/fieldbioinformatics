@@ -121,7 +121,7 @@ def read_bed_file(fn):
         if primerID not in bedFile:
 
             # add to the bed file and continue
-            bedFile[primerID] = row
+            bedFile[primerID] = row.to_dict()
             continue
 
         # otherwise, we've got a primer ID we've already seen so merge the alt
