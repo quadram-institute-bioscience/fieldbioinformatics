@@ -50,16 +50,10 @@ def merge_sites(canonical, alt):
         raise SystemExit(1)
 
     # merge the start/ends of the alt with the canonical to get the largest window possible
-    if canonical['direction'] == '+':
-        if alt['start'] < canonical['start']:
-            mergedSite['start'] = alt['start']
-        if alt['end'] > canonical['end']:
-            mergedSite['end'] = alt['end']
-    else:
-        if alt['start'] > canonical['start']:
-            mergedSite['start'] = alt['start']
-        if alt['end'] < canonical['end']:
-            mergedSite['end'] = alt['end']
+    if alt['start'] < canonical['start']:
+        mergedSite['start'] = alt['start']
+    if alt['end'] > canonical['end']:
+        mergedSite['end'] = alt['end']
     return mergedSite
 
 
