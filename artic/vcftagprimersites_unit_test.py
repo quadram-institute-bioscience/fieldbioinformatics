@@ -18,6 +18,15 @@ def test_read_bed_file():
     # check the the alts have been collapsed into a canonical primer site
     assert len(primerScheme) == 196, "alts were not collapsed"
 
+    # check that alts are merging by union (not intersection)
+    for entry in primerScheme:
+        if entry['Primer_ID'] == 'nCoV-2019_45_RIGHT':
+            assert entry['start'] == 13660, "failed to merge nCov-2019_45_RIGHT alt, bad start"
+            assert entry['end'] == 13699, "failed to merge nCov-2019_45_RIGHT alt, bad end"
+        if entry['Primer_ID'] == 'nCoV-2019_89_LEFT':
+            assert entry['start'] == 26835, "failed to merge nCoV-2019_89_LEFT alt, bad start"
+            assert entry['end'] == 26860, "failed to merge nCoV-2019_89_LEFT alt, bad end"
+
     # check access to primer scheme fields
     for row in primerScheme:
         assert 'Primer_ID' in row, "failed to parse primer scheme for Primer_ID"
