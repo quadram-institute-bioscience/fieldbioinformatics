@@ -46,7 +46,7 @@ def run(parser, args):
 
     nanopolish_header = get_nanopolish_header(ref)
 
-    if not args.medaka:
+    if not args.medaka and not args.skip_nanopolish:
         if not args.fast5_directory or not args.sequencing_summary:
               print(colored.red('Must specify FAST5 directory and sequencing summary for nanopolish mode.'))
               raise SystemExit(1)
