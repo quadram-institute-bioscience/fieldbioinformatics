@@ -21,7 +21,7 @@ import seaborn as sns
 import sys
 
 
-matplotlib.use('Agg')
+plt.use('Agg')
 sns.set_style("ticks")
 
 
