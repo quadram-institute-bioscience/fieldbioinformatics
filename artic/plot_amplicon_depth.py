@@ -12,16 +12,15 @@ This has been written for use in the ARTIC pipeline so there are no file checks 
 
 """
 
-import argparse
 import matplotlib.pyplot as plt
-import numpy as np
-import pandas as pd
-import seaborn as sns
-import sys
 from .vcftagprimersites import read_bed_file
-
-plt.ioff()
-sns.set_style("ticks")
+import sys
+import seaborn as sns
+import pandas as pd
+import numpy as np
+import argparse
+import matplotlib
+matplotlib.use('SVG')
 
 
 def go(args):
