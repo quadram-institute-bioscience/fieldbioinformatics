@@ -20,6 +20,8 @@ import pandas as pd
 import seaborn as sns
 import sys
 
+
+matplotlib.use('Agg')
 sns.set_style("ticks")
 
 
