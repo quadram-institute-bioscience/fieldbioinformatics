@@ -13,7 +13,6 @@ This has been written for use in the ARTIC pipeline so there are no file checks 
 """
 
 import argparse
-import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -21,7 +20,7 @@ import seaborn as sns
 import sys
 from .vcftagprimersites import read_bed_file
 
-matplotlib.use('Agg')
+plt.ioff()
 sns.set_style("ticks")
 
 
