@@ -105,7 +105,7 @@ def go(args):
     newDF = newDF.dropna()
 
     # plot the bar
-    sns.catplot(data=newDF,
+    g = sns.catplot(data=newDF,
                         x="amplicon",
                         y="mean amplicon read depth",
                         hue="read group",
@@ -114,37 +114,21 @@ def go(args):
                         kind="bar",
                         dodge=False,
                         legend=False)
-    plt.savefig(args.outFilePrefix + "-barplot.png")
-    plt.close()
-
-    """
-    # plot the bar
-    g = sns.catplot(data=newDF,
-                    x="amplicon",
-                    y="mean amplicon read depth",
-                    hue="read group",
-                    height=4,
-                    aspect=3,
-                    kind="bar",
-                    dodge=False,
-                    legend=False)
     g.set(yscale="log")
     g.fig.suptitle(args.sampleID)
     plt.legend(loc='upper right')
     plt.xticks(rotation=45, size=6)
-    barf = args.outFilePrefix + "-barplot.png"
-    g.savefig(barf, dpi=300)
-    """
-    
+    plt.savefig(args.outFilePrefix + "-barplot.png")
+    plt.close()
+
     # plot the box
     g = sns.catplot(data=newDF,
                     x="read group",
                     y="mean amplicon read depth",
                     kind="box")
     g.fig.suptitle(args.sampleID)
-    boxf = args.outFilePrefix + "-boxplot.png"
-    g.savefig(boxf, dpi=300)
-
+    plt.savefig(args.outFilePrefix + "-boxplot.png")
+    plt.close()
 
 
 def main():
