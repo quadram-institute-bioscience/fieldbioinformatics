@@ -14,16 +14,15 @@ This has been written for use in the ARTIC pipeline so there are no file checks 
 
 from .vcftagprimersites import read_bed_file
 import sys
-import seaborn as sns
 import pandas as pd
 import numpy as np
 import argparse
+import os
 
 
-import matplotlib as mpl
-mpl.use('Agg')
+os.environ['QT_QPA_PLATFORM']='offscreen'
 import matplotlib.pyplot as plt
-
+import seaborn as sns
 
 def go(args):
 
