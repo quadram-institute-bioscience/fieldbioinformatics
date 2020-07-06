@@ -11,7 +11,6 @@ This has been written for use in the ARTIC pipeline so there are no file checks 
  * depth values are provided for all positions (see output of make_depth_mask.py for expected format)
 
 """
-
 from .vcftagprimersites import read_bed_file
 import sys
 import pandas as pd
@@ -20,9 +19,11 @@ import argparse
 import os
 
 
-os.environ['QT_QPA_PLATFORM']='offscreen'
-import matplotlib.pyplot as plt
+os.environ['QT_QPA_PLATFORM'] = 'offscreen'
 import seaborn as sns
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
 
 def go(args):
 
@@ -104,6 +105,20 @@ def go(args):
     newDF = newDF.dropna()
 
     # plot the bar
+    sns.catplot(data=newDF,
+                        x="amplicon",
+                        y="mean amplicon read depth",
+                        hue="read group",
+                        height=4,
+                        aspect=3,
+                        kind="bar",
+                        dodge=False,
+                        legend=False)
+    plt.savefig(args.outFilePrefix + "-barplot.png")
+    plt.close()
+
+    """
+    # plot the bar
     g = sns.catplot(data=newDF,
                     x="amplicon",
                     y="mean amplicon read depth",
@@ -119,7 +134,8 @@ def go(args):
     plt.xticks(rotation=45, size=6)
     barf = args.outFilePrefix + "-barplot.png"
     g.savefig(barf, dpi=300)
-
+    """
+    
     # plot the box
     g = sns.catplot(data=newDF,
                     x="read group",
@@ -128,6 +144,7 @@ def go(args):
     g.fig.suptitle(args.sampleID)
     boxf = args.outFilePrefix + "-boxplot.png"
     g.savefig(boxf, dpi=300)
+
 
 
 def main():
