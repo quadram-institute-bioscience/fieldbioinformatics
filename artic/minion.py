@@ -88,7 +88,7 @@ def run(parser, args):
             if os.path.exists("%s.%s.hdf" % (args.sample, p)):
                 os.remove("%s.%s.hdf" % (args.sample, p))
 
-            cmds.append("medaka consensus --chunk_len 800 --chunk_ovlp 400 %s.primertrimmed.%s.sorted.bam %s.%s.hdf" % (args.sample, p, args.sample, p))
+            cmds.append("medaka consensus --model %s --threads %s --chunk_len 800 --chunk_ovlp 400 %s.primertrimmed.%s.sorted.bam %s.%s.hdf" % (args.medaka_model, args.threads, args.sample, p, args.sample, p))
             if args.no_indels:
                 cmds.append("medaka snp %s %s.%s.hdf %s.%s.vcf" % (ref, args.sample, p, args.sample, p))
             else:
