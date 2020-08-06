@@ -97,6 +97,8 @@ def init_pipeline_parser():
         'sample', metavar='sample', help='The name of the sample.')
     parser_minion.add_argument('--medaka', dest='medaka', action='store_true',
                                help='Use medaka instead of nanopolish for variants')
+    parser_minion.add_argument('--medaka-model', metavar='medaka_model',
+                                default='r941_min_high_g351', help='The model to use for medaka')
     parser_minion.add_argument('--minimap2', dest='minimap2', default=True,
                                action='store_true', help='Use minimap2 (default)')
     parser_minion.add_argument(
