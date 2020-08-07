@@ -11,17 +11,19 @@ This has been written for use in the ARTIC pipeline so there are no file checks 
  * depth values are provided for all positions (see output of make_depth_mask.py for expected format)
 
 """
-
 from .vcftagprimersites import read_bed_file
-import argparse
-import matplotlib.pyplot as plt
-import numpy as np
-import pandas as pd
-import seaborn as sns
 import sys
+import pandas as pd
+import numpy as np
+import argparse
+import os
 
-sns.set_style("ticks")
 
+os.environ['QT_QPA_PLATFORM'] = 'offscreen'
+import seaborn as sns
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
 
 def go(args):
 
@@ -104,20 +106,20 @@ def go(args):
 
     # plot the bar
     g = sns.catplot(data=newDF,
-                    x="amplicon",
-                    y="mean amplicon read depth",
-                    hue="read group",
-                    height=4,
-                    aspect=3,
-                    kind="bar",
-                    dodge=False,
-                    legend=False)
+                        x="amplicon",
+                        y="mean amplicon read depth",
+                        hue="read group",
+                        height=4,
+                        aspect=3,
+                        kind="bar",
+                        dodge=False,
+                        legend=False)
     g.set(yscale="log")
     g.fig.suptitle(args.sampleID)
     plt.legend(loc='upper right')
     plt.xticks(rotation=45, size=6)
-    barf = args.outFilePrefix + "-barplot.png"
-    g.savefig(barf, dpi=300)
+    plt.savefig(args.outFilePrefix + "-barplot.png")
+    plt.close()
 
     # plot the box
     g = sns.catplot(data=newDF,
@@ -125,8 +127,8 @@ def go(args):
                     y="mean amplicon read depth",
                     kind="box")
     g.fig.suptitle(args.sampleID)
-    boxf = args.outFilePrefix + "-boxplot.png"
-    g.savefig(boxf, dpi=300)
+    plt.savefig(args.outFilePrefix + "-boxplot.png")
+    plt.close()
 
 
 def main():
