@@ -92,19 +92,21 @@ def init_pipeline_parser():
     # minion
     parser_minion = subparsers.add_parser('minion', help='Run the alignment/variant-call/consensus pipeline')
     parser_minion.add_argument(
-        'scheme', metavar='scheme', help='The name of the scheme.')
+        'scheme', metavar='scheme', help='The name of the scheme')
     parser_minion.add_argument(
-        'sample', metavar='sample', help='The name of the sample.')
+        'sample', metavar='sample', help='The name of the sample')
     parser_minion.add_argument('--medaka', dest='medaka', action='store_true',
                                help='Use medaka instead of nanopolish for variants')
+    parser_minion.add_argument('--medaka-model', metavar='medaka_model',
+                                default='r941_min_high_g351', help='The model to use for medaka (default: %(default)s)')
     parser_minion.add_argument('--minimap2', dest='minimap2', default=True,
                                action='store_true', help='Use minimap2 (default)')
     parser_minion.add_argument(
         '--bwa', dest='bwa', action='store_true', help='Use bwa instead of minimap2')
     parser_minion.add_argument('--normalise', dest='normalise', type=int,
-                               default=100, help='Normalise down to moderate coverage to save runtime.')
+                               default=100, help='Normalise down to moderate coverage to save runtime (default: %(default)d, deactivate with `--normalise 0`)')
     parser_minion.add_argument(
-        '--threads', type=int, default=8, help='Number of threads')
+        '--threads', type=int, default=8, help='Number of threads (default: %(default)d)')
     parser_minion.add_argument('--scheme-directory', metavar='scheme_directory',
                                default='/artic/schemes', help='Default scheme directory')
     parser_minion.add_argument('--max-haplotypes', type=int, default=1000000,
