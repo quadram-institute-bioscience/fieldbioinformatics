@@ -8,7 +8,7 @@ date: 2020-03-30
 ---
 
 <div align="center">
-    <img src="./artic-logo.png?raw=true?" alt="artic-logo" width="250">
+    <img src="https://raw.githubusercontent.com/artic-network/fieldbioinformatics/master/docs/artic-logo.png" alt="artic-logo" width="250">
     <h1>ARTIC</h1>
     <hr/>
 </div>
