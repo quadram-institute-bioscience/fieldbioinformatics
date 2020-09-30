@@ -37,12 +37,13 @@ conda install -c bioconda artic
 
 ### Via source
 
-#### 1. installing the pipeline:
+#### 1. downloading the source:
+
+Download a [release](https://github.com/artic-network/fieldbioinformatics/releases) or use the latest master (which tracks the current release):
 
 ```sh
 git clone https://github.com/artic-network/fieldbioinformatics
 cd fieldbioinformatics
-python setup.py install
 ```
 
 #### 2. installing dependencies:
@@ -54,7 +55,13 @@ conda env create -f environment.yml
 conda activate artic
 ```
 
-#### 3. testing the pipeline:
+#### 3. installing the pipeline:
+
+```sh
+python setup.py install
+```
+
+#### 4. testing the pipeline:
 
 First check the pipeline can be called.
 
