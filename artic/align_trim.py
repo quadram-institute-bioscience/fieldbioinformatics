@@ -7,6 +7,7 @@ from collections import defaultdict
 import pysam
 import sys
 from .vcftagprimersites import read_bed_file
+import logging
 
 # consumesReference lookup for if a CIGAR operation consumes the reference sequence
 consumesReference = [True, False, True, True, False, False, False, True]

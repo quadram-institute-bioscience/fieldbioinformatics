@@ -11,6 +11,7 @@ This has been written for use in the ARTIC pipeline so there are no file checks 
  * depth values are provided for all positions (see output of make_depth_mask.py for expected format)
 
 """
+from logging import INFO
 from .vcftagprimersites import read_bed_file
 import sys
 import pandas as pd
@@ -18,6 +19,8 @@ import numpy as np
 import argparse
 import os
 
+import logging
+logging.basicConfig(format='%(name)s-%(levelname)s-%(message)s', datefmt='%d-%b-%y %H:%M:%S', level=INFO)
 
 os.environ['QT_QPA_PLATFORM'] = 'offscreen'
 import seaborn as sns
@@ -47,15 +50,19 @@ def go(args):
             rgAmplicons[poolName].append(ampliconCounter)
             rgStarts[poolName].append(primer['start'])
             ampliconCounter += 1
-
+    logging.info(rgAmplicons)
     # for pandas cut func to create bins, we need to add an extra value to the starts (just use inf)
     for startList in rgStarts.values():
         startList.append(np.inf)
 
     # process the depth files
     dfs = {}
-    for depthFile in args.depthFiles:
-
+    
+    #Filter out unmatched depth files if existed
+    depthFiles = [df for df in args.depthFiles if 'unmatched' not in df.name]
+    
+    for depthFile in depthFiles:
+        logging.info(depthFile.name)
         # read in the depth file
         df = pd.read_csv(depthFile, sep='\t', header=None)
         df.columns = ["refName", "readGroup", "position", "depth"]
@@ -70,13 +77,15 @@ def go(args):
                                  1), "error: depth needs to be reported at all positions"
 
         # check the primer scheme contains the readgroup
-        rgList = df.readGroup.unique()
+        rgList = df.readGroup.unique()     
+
         assert len(rgList) == 1, "error: depth file has %d readgroups, need 1 (%s)" % (
             len(rgList), depthFile)
         rg = rgList[0]
+
         assert rg in rgAmplicons, "error: readgroup not found in provided primer scheme (%s)" % (
             rg)
-
+        # logging.info(f'rg:{rg}')
         # get the amplicon starts for this readgroup
         amplicons = sorted(rgAmplicons[rg])
         starts = sorted(rgStarts[rg])
@@ -118,7 +127,7 @@ def go(args):
     g.fig.suptitle(args.sampleID)
     plt.legend(loc='upper right')
     plt.xticks(rotation=45, size=6)
-    plt.savefig(args.outFilePrefix + "-barplot.png")
+    plt.savefig(args.outFilePrefix + ".barplot.png")
     plt.close()
 
     # plot the box
@@ -127,7 +136,7 @@ def go(args):
                     y="mean amplicon read depth",
                     kind="box")
     g.fig.suptitle(args.sampleID)
-    plt.savefig(args.outFilePrefix + "-boxplot.png")
+    plt.savefig(args.outFilePrefix + ".boxplot.png")
     plt.close()
 
 

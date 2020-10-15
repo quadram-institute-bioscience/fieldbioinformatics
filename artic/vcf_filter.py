@@ -3,6 +3,7 @@ import sys
 from operator import attrgetter
 from collections import defaultdict
 from .vcftagprimersites import read_bed_file
+import logging
 
 def in_frame(v):
     if len(v.ALT) > 1:
@@ -11,6 +12,7 @@ def in_frame(v):
     ref = v.REF
     alt = v.ALT[0]
     bases = len(alt) - len(ref)
+    logging.debug(f"ref: {ref} alt: {alt} bases: {bases}")
     if not bases:
        return True
     if bases % 3 == 0:
@@ -63,6 +65,7 @@ class LongshotFilter:
         self.no_frameshifts = no_frameshifts
 
     def check_filter(self, v):
+        logging.debug(f"{v.POS} DP: {v.INFO['DP']}")
         depth = v.INFO['DP']
         if depth < 20:
             return False
@@ -75,6 +78,9 @@ class LongshotFilter:
         return True
 
 def go(args):
+    if args.verbose:
+        logging.basicConfig(format='%(asctime)s-%(levelname)s-%(message)s', datefmt='%d-%b-%y %H:%M:%S', level=logging.DEBUG)
+    
     vcf_reader = vcf.Reader(filename=args.inputvcf)
     vcf_writer = vcf.Writer(open(args.output_pass_vcf, 'w'), vcf_reader)
     vcf_writer_filtered = vcf.Writer(open(args.output_fail_vcf, 'w'), vcf_reader)
@@ -94,15 +100,18 @@ def go(args):
     for v in variants:
         indx = "%s-%s" % (v.CHROM, v.POS)
         group_variants[indx].append(v)
+        logging.debug(f"POS {indx} Length: {len(group_variants[indx])}")
     
     for v in variants:
         if filter.check_filter(v):
+            logging.debug(f"{v.POS}: check_filter {filter.check_filter(v)}")
             vcf_writer.write_record(v)
         else:
             variant_passes = False
 
             indx = "%s-%s" % (v.CHROM, v.POS)
             if len(group_variants[indx]) > 1:
+                logging.debug(f"Duplicate {indx}: {len(group_variants[indx])}")
                 for check_variant in group_variants[indx]:
                     if filter.check_filter(check_variant):
                         variant_passes = True 
@@ -111,6 +120,7 @@ def go(args):
                 vcf_writer_filtered.write_record(v)
             else:
                 print ("Suppress variant %s\n" % (v.POS))
+                logging.debug(f"{v.POS}: {filter.check_filter(v)}")
 
 def main():
     import argparse
@@ -120,6 +130,7 @@ def main():
     parser.add_argument('--medaka', action='store_true')
     parser.add_argument('--longshot', action='store_true')
     parser.add_argument('--no-frameshifts', action='store_true')
+    parser.add_argument('--verbose', action='store_true')
     parser.add_argument('inputvcf')
     parser.add_argument('output_pass_vcf')
     parser.add_argument('output_fail_vcf')

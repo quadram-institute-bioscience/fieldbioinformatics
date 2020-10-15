@@ -117,7 +117,9 @@ def init_pipeline_parser():
     parser_minion.add_argument(
         '--sequencing-summary', help='Path to Guppy sequencing summary')
     parser_minion.add_argument('--skip-nanopolish', action='store_true')
+    parser_minion.add_argument('--coronahit', action='store_true', help='Enable post-processing for coronaHiT data')
     parser_minion.add_argument('--no-indels', action='store_true')
+    parser_minion.add_argument('--verbose', action='store_true')
     parser_minion.add_argument('--dry-run', action='store_true')
     parser_minion.set_defaults(func=run_subtool)
 

@@ -54,8 +54,8 @@ def collect_depths(bamfile, refName, minDepth, ignoreDeletions, warnRGcov):
 
     # get the read groups and init the depth vectors
     for rg in bamFile.header['RG']:
-        if rg['ID'] == 'unmatched':
-            continue
+        # if rg['ID'] == 'unmatched':
+        #     continue
         rgDepths[rg['ID']] = [0] * bamFile.get_reference_length(refName)
 
     # flag to state if BAM file has low readgroup coverage
@@ -72,7 +72,9 @@ def collect_depths(bamfile, refName, minDepth, ignoreDeletions, warnRGcov):
 
             # get the read group for this pileup read and check it's in the BAM header
             rg = pileupread.alignment.get_tag('RG')
-            assert rg in rgDepths, "alignment readgroup not in BAM header: %s" % rg
+            
+            # print(f"Read group: {rg}")
+            # assert rg in rgDepths, "alignment readgroup not in BAM header: %s" % rg
 
             # process the pileup read
             if pileupread.is_refskip:
@@ -137,12 +139,12 @@ def go(args):
     seqLength = len(record.seq)
 
     # collect the depths from the pileup, replacing any depth<minDepth with 0
-    try:
-        depths, rgDepths = collect_depths(args.bamfile, seqID,
+    # try:
+    depths, rgDepths = collect_depths(args.bamfile, seqID,
                                           args.depth, args.ignore_deletions, args.warn_rg_coverage)
-    except Exception as e:
-        print(e)
-        raise SystemExit(1)
+    # except Exception as e:
+    #     print(f"Something was wrong: {e}")
+    #     raise SystemExit(1)
 
     # check the number of positions in the reported depths matches the reference sequence
     if len(depths) != seqLength:

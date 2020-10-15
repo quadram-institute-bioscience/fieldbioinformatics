@@ -7,6 +7,7 @@ import sys
 import time
 from .vcftagprimersites import read_bed_file
 
+
 def get_nanopolish_header(ref):
     recs = list(SeqIO.parse(open(ref), "fasta"))
     if len (recs) != 1:
@@ -73,14 +74,23 @@ def run(parser, args):
 #        cmds.append("samtools index %s.primertrimmed.sorted.bam" % (args.sample))
 #    else:
     cmds.append("align_trim --start %s %s --report %s.alignreport.txt < %s.sorted.bam 2> %s.alignreport.er | samtools sort -T %s - -o %s.trimmed.rg.sorted.bam" % (normalise_string, bed, args.sample, args.sample, args.sample, args.sample, args.sample))
-    cmds.append("align_trim %s %s --remove-incorrect-pairs --report %s.alignreport.txt < %s.sorted.bam 2> %s.alignreport.er | samtools sort -T %s - -o %s.primertrimmed.rg.sorted.bam" % (normalise_string, bed, args.sample, args.sample, args.sample, args.sample, args.sample))
+    if args.coronahit:
+        cmds.append("align_trim %s %s --report %s.alignreport.txt < %s.sorted.bam 2> %s.alignreport.er | samtools sort -T %s - -o %s.corhit.bam" % (normalise_string, bed, args.sample, args.sample, args.sample, args.sample, args.sample))
+        cmds.append(f"corhit_read_filter --output-name {args.sample} {ref} {args.sample}.corhit.bam")
+        pools = list(pools)
+        pools.append('unmatched')
+    else:
+        cmds.append("align_trim %s %s --remove-incorrect-pairs --report %s.alignreport.txt < %s.sorted.bam 2> %s.alignreport.er | samtools sort -T %s - -o %s.primertrimmed.rg.sorted.bam" % (normalise_string, bed, args.sample, args.sample, args.sample, args.sample, args.sample))
+    
+    #Debug incorrectly paired primers
+    # cmds.append("align_trim %s %s --verbose --report %s.alignreport.debug.txt < %s.sorted.bam 2> %s.alignreport.debug.er | samtools sort -T %s - -o %s.primertrimmed.rg.sorted.debug.bam" % (normalise_string, bed, args.sample, args.sample, args.sample, args.sample, args.sample))
     cmds.append("samtools index %s.trimmed.rg.sorted.bam" % (args.sample))
     cmds.append("samtools index %s.primertrimmed.rg.sorted.bam" % (args.sample))
 
     if args.medaka:
        for p in pools:
-          cmds.append("samtools view -b -r \"%s\" %s.primertrimmed.rg.sorted.bam > %s.primertrimmed.%s.sorted.bam" % (p, args.sample, args.sample, p))
-          cmds.append("samtools index %s.primertrimmed.%s.sorted.bam" % (args.sample, p))
+          cmds.append(f"samtools view -b -r \"{p}\" {args.sample}.primertrimmed.rg.sorted.bam > {args.sample}.primertrimmed.{p}.sorted.bam")
+          cmds.append(f"samtools index {args.sample}.primertrimmed.{p}.sorted.bam")
 
     # 6) do variant calling using the raw signal alignment
     if args.medaka:
@@ -109,6 +119,10 @@ def run(parser, args):
     for p in pools:
         merge_vcf_cmd += " %s:%s.%s.vcf" % (p, args.sample, p)
     cmds.append(merge_vcf_cmd)
+
+    if args.coronahit:
+        cmds.append(f"mv {args.sample}.merged.vcf {args.sample}.original_merged.vcf")
+        cmds.append(f"corhit_vcf_filter {args.sample}.original_merged.vcf {args.sample}.merged.vcf {args.sample}.unmatched.removed.vcf")
 
     if args.medaka:
         cmds.append("bgzip -f %s.merged.vcf" % (args.sample))
@@ -151,7 +165,7 @@ def run(parser, args):
             timerStop = time.perf_counter()
 
             # print the executed command and the runtime to the log file
-            print("{}\t{}" .format(cmd, timerStop-timerStart), file=logfh)
+            print("{}\tDuration: {} second(s)" .format(cmd, timerStop-timerStart), file=logfh)
         
         # if it's a dry run, print just the command
         else:
