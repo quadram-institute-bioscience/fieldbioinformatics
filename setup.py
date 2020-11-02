@@ -41,6 +41,8 @@ setup(
             'artic_plot_amplicon_depth=artic.plot_amplicon_depth:main',
             'artic_fasta_header=artic.fasta_header:main',
             'artic_mask=artic.mask:main',
+            'corhit_vcf_filter=artic.corhit_vcf_filter:main',
+            'corhit_trim=artic.corhit_trim:main'
         ],
     },
     author_email="n.j.loman@bham.ac.uk",

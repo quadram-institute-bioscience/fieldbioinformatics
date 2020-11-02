@@ -24,7 +24,7 @@ def run(parser, args):
         scheme_name, scheme_version = args.scheme.split('/')
     else:
         scheme_name = args.scheme
-        scheme_version = "V1"
+        scheme_version = "V3"
 
     ref = "%s/%s/%s/%s.reference.fasta" % (args.scheme_directory, scheme_name, scheme_version, scheme_name)
     bed = "%s/%s/%s/%s.scheme.bed" % (args.scheme_directory, scheme_name, scheme_version, scheme_name)
@@ -73,18 +73,23 @@ def run(parser, args):
 #        cmds.append("samtools index %s.trimmed.sorted.bam" % (args.sample))
 #        cmds.append("samtools index %s.primertrimmed.sorted.bam" % (args.sample))
 #    else:
-    cmds.append("align_trim --start %s %s --report %s.alignreport.txt < %s.sorted.bam 2> %s.alignreport.er | samtools sort -T %s - -o %s.trimmed.rg.sorted.bam" % (normalise_string, bed, args.sample, args.sample, args.sample, args.sample, args.sample))
+
     if args.coronahit:
-        cmds.append("align_trim %s %s --report %s.alignreport.txt < %s.sorted.bam 2> %s.alignreport.er | samtools sort -T %s - -o %s.corhit.bam" % (normalise_string, bed, args.sample, args.sample, args.sample, args.sample, args.sample))
-        cmds.append(f"corhit_read_filter --output-name {args.sample} {ref} {args.sample}.corhit.bam")
-        pools = list(pools)
-        pools.append('unmatched')
+        # cmds.append("align_trim %s %s --report %s.alignreport.txt < %s.sorted.bam 2> %s.alignreport.er | samtools sort -T %s - -o %s.corhit.bam" % (normalise_string, bed, args.sample, args.sample, args.sample, args.sample, args.sample))
+        # cmds.append(f"corhit_read_filter --output-name {args.sample} {ref} {args.sample}.corhit.bam")
+        # pools = list(pools)
+        # pools.append('unmatched')
+        cmds.append(
+            f"corhit_trim --output-name {args.sample} --report {args.sample}.alignreport.txt {args.sample}.sorted.bam {args.scheme_directory}/{args.scheme} 2> {args.sample}.alignreport.er")
     else:
+        cmds.append("align_trim --start %s %s --report %s.alignreport.txt < %s.sorted.bam 2> %s.alignreport.er | samtools sort -T %s - -o %s.trimmed.rg.sorted.bam" %
+                    (normalise_string, bed, args.sample, args.sample, args.sample, args.sample, args.sample))
+        cmds.append("samtools index %s.trimmed.rg.sorted.bam" % (args.sample))
         cmds.append("align_trim %s %s --remove-incorrect-pairs --report %s.alignreport.txt < %s.sorted.bam 2> %s.alignreport.er | samtools sort -T %s - -o %s.primertrimmed.rg.sorted.bam" % (normalise_string, bed, args.sample, args.sample, args.sample, args.sample, args.sample))
-    
+        
     #Debug incorrectly paired primers
     # cmds.append("align_trim %s %s --verbose --report %s.alignreport.debug.txt < %s.sorted.bam 2> %s.alignreport.debug.er | samtools sort -T %s - -o %s.primertrimmed.rg.sorted.debug.bam" % (normalise_string, bed, args.sample, args.sample, args.sample, args.sample, args.sample))
-    cmds.append("samtools index %s.trimmed.rg.sorted.bam" % (args.sample))
+    
     cmds.append("samtools index %s.primertrimmed.rg.sorted.bam" % (args.sample))
 
     if args.medaka:
@@ -122,7 +127,7 @@ def run(parser, args):
 
     if args.coronahit:
         cmds.append(f"mv {args.sample}.merged.vcf {args.sample}.original_merged.vcf")
-        cmds.append(f"corhit_vcf_filter {args.sample}.original_merged.vcf {args.sample}.merged.vcf {args.sample}.unmatched.removed.vcf")
+        cmds.append(f"corhit_vcf_filter {args.sample}.original_merged.vcf {args.sample}.merged.vcf {args.sample}.duplicated.removed.vcf")
 
     if args.medaka:
         cmds.append("bgzip -f %s.merged.vcf" % (args.sample))

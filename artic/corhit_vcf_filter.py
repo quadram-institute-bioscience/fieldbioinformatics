@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-# Script for filtering out VCF for coronaHiT method
-# Filter duplicated snp/indel in unmatched
+# Script for filtering out duplicated snps with lowest QUAL scores in VCF for coronaHiT method 
 # Code were modified from vcf_filter.py by Nick Loman
 # Thanh Le Viet - Quadram Institute Bioscience, 2020
 
@@ -8,6 +7,7 @@ import vcf
 from operator import attrgetter
 from collections import defaultdict
 import logging
+import operator
 
 def go(args):
     if args.verbose:
@@ -28,28 +28,20 @@ def go(args):
         group_variants[indx].append(v)
 
     for v in variants:
-        if v.POS==4850:
-            logging.debug(f"FUCK IT POS: {v.POS} REF: {v.REF[0]}:{len(v.REF[0])} ALT: {v.ALT[0]}:{len(v.ALT[0])} INFO: {v.INFO['Pool']} {v.FORMAT}")
         indx = "%s-%s" % (v.CHROM, v.POS)
+        #Find max QUAL in the duplicated snps
+        max_qual_snp = max(group_variants[indx], key=operator.attrgetter('QUAL'))
         if len(group_variants[indx]) > 1:
-            if v.INFO['Pool'] != 'unmatched':
+            if (v.INFO['Pool'] == max_qual_snp.INFO['Pool']):
                 vcf_keep_writer.write_record(v)
-                logging.debug(f"Duplicated {indx} POS: {v.POS} ALT: {v.ALT} INFO: {v.INFO['Pool']} {v.var_type}")
+                logging.debug(f"Keep puplicated {indx} POS: {v.POS} ALT: {v.ALT} INFO: {v.INFO['Pool']} {v.var_type} QUAL:{v.QUAL}")
             else:
                 vcf_remove_writer.write_record(v)
+                logging.debug(
+                    f"Remove duplicated {indx} POS: {v.POS} ALT: {v.ALT} INFO: {v.INFO['Pool']} {v.var_type} QUAL:{v.QUAL}")
         else:
-            if v.INFO['Pool'] != 'unmatched':
-                vcf_keep_writer.write_record(v)                
-            else:
-                if v.var_type == "snp":
-                    vcf_keep_writer.write_record(v)
-                    logging.debug(
-                        f"Keep<=={indx} POS: {v.POS} REF: {v.REF[0]}:{len(v.REF[0])} ALT: {v.ALT[0]}:{len(v.ALT[0])} INFO: {v.INFO['Pool']} {v.FORMAT}")
-                else:
-                    vcf_remove_writer.write_record(v)
-                    logging.debug(
-                    f"Remove==>{indx} POS: {v.POS} REF: {v.REF[0]}:{len(v.REF[0])} ALT: {v.ALT[0]}:{len(v.ALT[0])} INFO: {v.INFO['Pool']} {v.FORMAT}")
-
+            vcf_keep_writer.write_record(v)                
+        
 def main():
     import argparse
 
