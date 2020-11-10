@@ -20,7 +20,7 @@ def trim(infile, bedfile, reference, output_name, singularity_samtool=None, thre
     if output_name is None:
         output_name="amplicon_clipped"
     
-    samtools_ampliconclip_cmd = f"samtools ampliconclip -@ {threads} -b {bedfile} {infile} --reference {reference} --strand -O bam --both-end --original"
+    samtools_ampliconclip_cmd = f"samtools ampliconclip -@ {threads} -b {bedfile} {infile} --reference {reference} --strand -O bam --both-end --original -f {output_name}.ampliconclip.stats"
     pipe_cmd = "|"
     samtools_sort = f"samtools sort -@ {threads} -o {output_name}.sorted.trimmed.bam -"
     SINGULARITY_SAMTOOLS = ""
@@ -88,9 +88,6 @@ def go(args):
         # locate the nearest primers to this alignment segment
         p1 = find_primer(bed, segment.reference_start, '+')
         p2 = find_primer(bed, segment.reference_end, '-')
-        # check if primers are correctly paired and then assign read group
-        # NOTE: removed this as a function as only called once
-        # TODO: will try improving this / moving it to the primer scheme processing code
 
         correctly_paired = p1[2]['Primer_ID'].replace(
             '_LEFT', '') == p2[2]['Primer_ID'].replace('_RIGHT', '')

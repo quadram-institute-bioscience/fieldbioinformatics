@@ -29,12 +29,31 @@ def go(args):
 
     for v in variants:
         indx = "%s-%s" % (v.CHROM, v.POS)
-        #Find max QUAL in the duplicated snps
+        #Find max/min QUAL in the duplicated snps
         max_qual_snp = max(group_variants[indx], key=operator.attrgetter('QUAL'))
+        min_qual_snp = min(group_variants[indx], key=operator.attrgetter('QUAL'))
+        
+        _del_len = abs(len(v.REF) - len(v.ALT[0]))
+
+        # print(f"{v.POS} REF: {v.REF}: {len(v.REF)}")
+        print(f"{v.POS} REF: {v.REF} ALT: {v.ALT[0]}: {len(v.ALT[0])}\t {v.var_type}")
+        #Filter out abnormal indel
+        if _del_len > 3:
+            vcf_remove_writer.write_record(v)
+            continue
+
         if len(group_variants[indx]) > 1:
+            # if (v.INFO['Pool'] == max_qual_snp.INFO['Pool'] and max_qual_snp.is_indel and min_qual_snp.is_indel):
             if (v.INFO['Pool'] == max_qual_snp.INFO['Pool']):
                 vcf_keep_writer.write_record(v)
                 logging.debug(f"Keep puplicated {indx} POS: {v.POS} ALT: {v.ALT} INFO: {v.INFO['Pool']} {v.var_type} QUAL:{v.QUAL}")
+            # elif (v.INFO['Pool'] == max_qual_snp.INFO['Pool'] and not max_qual_snp.is_indel):
+            #     vcf_keep_writer.write_record(v)
+            #     logging.debug(f"Keep puplicated {indx} POS: {v.POS} ALT: {v.ALT} INFO: {v.INFO['Pool']} {v.var_type} QUAL:{v.QUAL}")
+            # elif (v.INFO['Pool'] == min_qual_snp.INFO['Pool'] and max_qual_snp.is_indel and min_qual_snp.is_snp):
+            #     vcf_keep_writer.write_record(v)
+            #     logging.debug(
+            #         f"Keep puplicated {indx} POS: {v.POS} ALT: {v.ALT} INFO: {v.INFO['Pool']} {v.var_type} QUAL:{v.QUAL}")
             else:
                 vcf_remove_writer.write_record(v)
                 logging.debug(
@@ -46,7 +65,7 @@ def main():
     import argparse
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--verbose', action='store_true')
+    parser.add_argument('--verbose', action='store_true', default=False)
     parser.add_argument('input_vcf')
     parser.add_argument('keep_vcf')
     parser.add_argument('remove_vcf')
