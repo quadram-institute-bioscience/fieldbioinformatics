@@ -1,72 +1,65 @@
+#!/usr/bin/env python3
 import sys
 from Bio import SeqIO
+import dnaio
 import tempfile
 import os
 import glob
 import gzip
 import fnmatch
 import shutil
-import pandas as pd
+# import pandas as pd
+import numpy as np
 from collections import defaultdict
 from mimetypes import guess_type
 from functools import partial
 from math import log10
 from random import random
+from pathlib import Path
+import click
 
-# the ambition of this module is to merge some of the functionality from the "gather" and "demultiplex" tasks;
-# we are assuming the input is already guppy-demultiplexed data (one-pot barcoding - like) - this workflow will
-# also assume that Medaka rather than Nanopolish will be used and will skip the sequencing_summary step - basic
-# QC metrics will be derived during the fastq parsing step ...
+import time
 
-# This method will also allow for the analysis of gzipped fastq files = makes sense of space
-
-# Have tried to be minimally invasive to the existing code - maintain FieldBioinformatics style
-
-
-def get_read_mean_quality(record):
-    return -10 * log10((10 ** (pd.Series(record.letter_annotations["phred_quality"]) / -10)).mean())
+def get_mean_qscore(quality):
+    phred = dict(zip("""!"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~""",
+                     range(0, 94)))
+    phred_score = [phred[q] for q in quality]
+    _numerator = [10**(score/-10) for score in phred_score]
+    return -10 * log10(np.mean(_numerator))
 
 
 def run(parser, args):
-    files = os.listdir(args.directory)
-    fastq_files = [os.path.join(args.directory, f) for f in files if fnmatch.fnmatch(f, '*.fastq*') and not f.endswith('.temp')]
+    # fastq_directory,min_length, max_length, phred_score, output
+    start_time = time.time()
+    fastq_files = [str(fq) for fq in Path(args.directory).iterdir() if fq.name.endswith('.fastq') or fq.name.endswith('.fastq.gz')]
+    i = 0
+    total_seqs = 0
+    dups = set()
 
-    if fastq_files:
+    if len(fastq_files) >=1 :
         if not args.output:
-            fastq_outfn = "%s_%s.fastq" % (args.prefix, os.path.basename(args.directory))
+            fastq_outfn = "%s_%s.fastq.gz" % (args.prefix, os.path.basename(args.directory))
         else:
             fastq_outfn = args.output
+        with dnaio.FastqWriter(fastq_outfn) as fo:
+            for fastq_file in fastq_files:
+                with dnaio.open(fastq_file) as fi:
+                    for record in fi:
+                        total_seqs += 1
+                        seq_len = len(record.sequence)
+                        if args.min_length <= seq_len <= args.max_length and get_mean_qscore(record.qualities) >= args.quality:
+                            i += 1
+                            # print(
+                                # f"{record.name.split(' ')[0]}: {get_mean_qscore(record.qualities)}")
+                            if record.name not in dups:
+                                fo.write(record)
+                                dups.add(record.name)
+                        # if i == 10:
+                            # break
+    
+    print(f"Finished in {time.time() - start_time} seconds", file=sys.stderr)
+    print(f"Included reads: {i} out of {total_seqs}", file=sys.stderr)
+    print(f"Duplicated reads {dups}", file=sys.stderr)
 
-        outfh = open(fastq_outfn, "w")
-        print("Processing %s files in %s" % (len(fastq_files), args.directory), file=sys.stderr)
-
-        dups = set()
-
-        for fn in fastq_files:
-            encoding = guess_type(fn)[1]
-            _open = open
-            # only accommodating gzip compression at present
-            if encoding == "gzip":
-                _open = partial(gzip.open, mode="rt")
-            with _open(fn) as f:
-                try:
-                    for rec in SeqIO.parse(f, "fastq"):
-                       if args.max_length and len(rec) > args.max_length:
-                           continue
-                       if args.min_length and len(rec) < args.min_length:
-                           continue
-                       if not args.skip_quality_check and get_read_mean_quality(rec) < args.quality:
-                           continue
-                       if args.sample < 1:
-                           r = random()
-                           if r >= args.sample:
-                              continue
-
-                       if rec.id not in dups:
-                           SeqIO.write([rec], outfh, "fastq")
-                           dups.add(rec.id)
-                except ValueError:
-                    pass
-
-        outfh.close()
-        print(f"{fastq_outfn}\t{len(dups)}")
+# if __name__ == "__main__":
+#     run()

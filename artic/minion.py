@@ -80,7 +80,7 @@ def run(parser, args):
         # pools = list(pools)
         # pools.append('unmatched')
         cmds.append(
-            f"corhit_trim --output-name {args.sample} --report {args.sample}.alignreport.txt {args.sample}.sorted.bam {args.scheme_directory}/{args.scheme} 2> {args.sample}.alignreport.er")
+            f"corhit_trim --normalise {args.normalise} --output-name {args.sample} --report {args.sample}.alignreport.txt {args.sample}.sorted.bam {args.scheme_directory}/{args.scheme} 2> {args.sample}.alignreport.er")
     else:
         cmds.append("align_trim --start %s %s --report %s.alignreport.txt < %s.sorted.bam 2> %s.alignreport.er | samtools sort -T %s - -o %s.trimmed.rg.sorted.bam" %
                     (normalise_string, bed, args.sample, args.sample, args.sample, args.sample, args.sample))
@@ -116,7 +116,10 @@ def run(parser, args):
                 nanopolish_extra_args = " --snps"
             else:
                 nanopolish_extra_args = ""
-
+            cmds.append(
+                f"ln -sf {args.sample}.primertrimmed.rg.sorted.bam {args.sample}.trimmed.rg.sorted.bam")
+            cmds.append(
+                f"ln -sf {args.sample}.primertrimmed.rg.sorted.bam.bai {args.sample}.trimmed.rg.sorted.bam.bai")
             for p in pools:
                cmds.append("nanopolish variants --min-flanking-sequence 10 -x %s --progress -t %s --reads %s -o %s.%s.vcf -b %s.trimmed.rg.sorted.bam -g %s -w \"%s\" --ploidy 1 -m 0.15 --read-group %s %s" % (args.max_haplotypes, args.threads, indexed_nanopolish_file, args.sample, p, args.sample, ref, nanopolish_header, p, nanopolish_extra_args))
 

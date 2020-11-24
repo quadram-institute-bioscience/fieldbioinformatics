@@ -11,6 +11,7 @@ import subprocess
 import pathlib
 import sys
 import operator
+from collections import defaultdict
 
 from .align_trim import find_primer
 from .vcftagprimersites import read_bed_file
@@ -60,6 +61,13 @@ def go(args):
 
     # open the primer scheme and get the pools
     bed = read_bed_file(scheme_file)
+    primer_pos = defaultdict(dict)
+    for b in bed:
+        primer_pos[b['Primer_ID']]['start'] = b['start']
+        primer_pos[b['Primer_ID']]['end'] = b['end']
+    
+    # print(primer_pos)
+
     pools = set([row['PoolName'] for row in bed])
     pools.add('unmatched')
 
@@ -74,6 +82,8 @@ def go(args):
     # prepare the alignment outfile
     outfile = pysam.AlignmentFile(f"{args.output_name}.primertrimmed.rg.sorted.bam", "wb", header=bam_header)
     # iterate over the alignment segments in the input SAM file
+    # set up a counter to track amplicon abundance
+    counter = defaultdict(int)
     for segment in infile:
         # filter out unmapped and supplementary alignment segments
         if segment.is_unmapped:
@@ -88,35 +98,75 @@ def go(args):
         # locate the nearest primers to this alignment segment
         p1 = find_primer(bed, segment.reference_start, '+')
         p2 = find_primer(bed, segment.reference_end, '-')
-
+        # logging.debug(f"Primer 1: {p1}")
+        # logging.debug(f"Primer 1: {p2}")
         correctly_paired = p1[2]['Primer_ID'].replace(
             '_LEFT', '') == p2[2]['Primer_ID'].replace('_RIGHT', '')
+
+        pool_name = 'unmatched'
         #Tag primer into bam file
         tags = segment.get_tags()
         tags += [("P1", p1[2]['Primer_ID']), ("P2", p2[2]['Primer_ID'])]
-        segment.set_tags(tags)
-        
+        # segment.set_tags(tags)
         if correctly_paired:
-            segment.set_tag('RG', p1[2]['PoolName'])
-        else:        
+            if not segment.is_reverse: #Forward
+                if int(segment.reference_start) >= int(p1[2]['end']) and int(segment.reference_end) <= int(p2[2]['start']):
+                    pool_name = p1[2]['PoolName']
+            else: #Reverse
+                if int(segment.reference_end) <= int(p2[2]['start']) and int(segment.reference_start) >= int(p1[2]['end']):
+                    pool_name = p1[2]['PoolName']
+            tags += [("PL", p1[2]['Primer_ID']), ("PR", p2[2]['Primer_ID'])] #Set calibrate primer tags
+            segment.set_tag('RG', pool_name)
+        else:
             if not segment.is_reverse: #Forward
                 if int(segment.reference_start) < int(p1[2]['start']):
                     if int(segment.reference_end <= int(p2[2]['start'])):
-                        pool_name = p2[2]['PoolName']
-                    else:
-                        pool_name = 'unmatched'
+                        left_primer = p2[2]['Primer_ID'].replace('RIGHT', 'LEFT')
+                        if int(segment.reference_start) >= primer_pos[left_primer]['end']:
+                            pool_name = p2[2]['PoolName']
+                            tags += [("PL", left_primer),
+                                     ("PR", p2[2]['Primer_ID'])]
+                    #     else:
+                    #         pool_name = 'unmatched'
+                    # else:
+                    #     pool_name = 'unmatched'
                 else:
-                    pool_name = p1[2]['PoolName']
+                    right_primer = p1[2]['Primer_ID'].replace('LEFT', 'RIGHT')
+                    if int(segment.reference_end) <= primer_pos[right_primer]['start']:
+                        pool_name = p1[2]['PoolName']
+                        tags += [("PL", p1[2]['Primer_ID']),
+                                 ("PR", right_primer)]
+                    # pool_name = p1[2]['PoolName']
             else: #Reverse
                 if int(segment.reference_end) > int(p2[2]['start']):
+                    right_primer = p1[2]['Primer_ID'].replace('LEFT', 'RIGHT')
                     if int(segment.reference_start) > int(p1[2]['start']):
-                        pool_name = p1[2]['PoolName']
-                    else:
-                        pool_name = 'unmatched'
+                        if int(segment.reference_end) <= primer_pos[right_primer]['start']:
+                            pool_name = p1[2]['PoolName']
+                            tags += [("PL", p1[2]['Primer_ID']),
+                                     ("PR", right_primer)]
+                    # else:
+                    #     pool_name = 'unmatched'
                 else:
-                    pool_name = p2[2]['PoolName']
-            segment.set_tag('RG',pool_name)
+                    left_primer = p2[2]['Primer_ID'].replace('RIGHT', 'LEFT')
+                    if int(segment.reference_start) >= primer_pos[left_primer]['end']:
+                        pool_name = p2[2]['PoolName']
+                        tags += [("PL", left_primer),("PR", p2[2]['Primer_ID'])]
+                # segment.set_tag('RG',pool_name)
             # update the report with this alignment segment + primer details
+            # normalise if requested
+        tags = [('RG', pool_name)] + tags
+        segment.set_tags(tags)
+        if args.normalise:
+            # print(tags)
+            left_p = tags[:-1][1]
+            right_p = tags[:-3][1]
+            pair = "%s-%s-%d" % (left_p, right_p, segment.is_reverse)
+            counter[pair] += 1
+            if counter[pair] > args.normalise:
+                print("%s dropped as abundance theshold reached" %
+                      (segment.query_name), file=sys.stderr)
+                continue
         report = f"{segment.query_name}\t{segment.reference_start}\t{segment.reference_end}\t{p1[2]['Primer_ID']}_{p2[2]['Primer_ID']}\t{p1[2]['Primer_ID']}\t{abs(p1[1])}\t{p2[2]['Primer_ID']}\t{abs(p2[1])}\t{segment.is_secondary}\t{segment.is_supplementary}\t{p1[2]['start']}\t{p2[2]['end']}\t{correctly_paired}\t{segment.get_tag('RG')}"
         if args.report:
             print(report, file=reportfh)
@@ -131,6 +181,8 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--output-name', type=str, default=None, help="Name for output bam files (default: %(default)s)", required=False)
     parser.add_argument('--report', type=str, help='Output report to file')
+    parser.add_argument('--normalise', type=int,
+                        help='Subsample to n coverage per strand')
     parser.add_argument('--singularity-samtools', type=str, default="/beegfs/software/fieldbioinformatics/singularity/samtools.1.11.sif",
                         help="Full absolute path to singularity samtools >= 1.11 (default: %(default)s)", required=False)
     parser.add_argument('-v','--verbose', action='store_true', default=True, help="Debug mode")

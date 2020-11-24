@@ -38,9 +38,9 @@ def go(args):
         # print(f"{v.POS} REF: {v.REF}: {len(v.REF)}")
         print(f"{v.POS} REF: {v.REF} ALT: {v.ALT[0]}: {len(v.ALT[0])}\t {v.var_type}")
         #Filter out abnormal indel
-        if _del_len > 3:
-            vcf_remove_writer.write_record(v)
-            continue
+        # if _del_len > 10:
+        #     vcf_remove_writer.write_record(v)
+        #     continue
 
         if len(group_variants[indx]) > 1:
             # if (v.INFO['Pool'] == max_qual_snp.INFO['Pool'] and max_qual_snp.is_indel and min_qual_snp.is_indel):
