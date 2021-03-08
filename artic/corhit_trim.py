@@ -17,7 +17,7 @@ from .align_trim import find_primer
 from .vcftagprimersites import read_bed_file
 
 
-def trim(infile, bedfile, reference, output_name, singularity_samtool=None, threads=8):
+def trim(infile, bedfile, reference, output_name, singularity_samtool=None, threads=2):
     if output_name is None:
         output_name="amplicon_clipped"
     
@@ -31,7 +31,6 @@ def trim(infile, bedfile, reference, output_name, singularity_samtool=None, thre
     p = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     p.check_returncode()
     
-
 
 def go(args):
     if args.verbose:
@@ -52,7 +51,7 @@ def go(args):
     ), f"{scheme_file} is not existed."
 
     trim(args.bamfile, bedfile=bedfile, reference=reference,
-         output_name=args.output_name, singularity_samtool=args.singularity_samtools)
+         output_name=args.output_name, singularity_samtool=args.singularity_samtools, threads = args.threads)
     
     # prepare the report outfile
     if args.report:
@@ -183,8 +182,10 @@ def main():
     parser.add_argument('--report', type=str, help='Output report to file')
     parser.add_argument('--normalise', type=int,
                         help='Subsample to n coverage per strand')
-    parser.add_argument('--singularity-samtools', type=str, default="/beegfs/software/fieldbioinformatics/singularity/samtools.1.11.sif",
+    parser.add_argument('--singularity-samtools', type=str, default=None,
                         help="Full absolute path to singularity samtools >= 1.11 (default: %(default)s)", required=False)
+    parser.add_argument('--threads', type=int, default=8,
+                        help='Number of threads (default: %(default)d)')
     parser.add_argument('-v','--verbose', action='store_true', default=True, help="Debug mode")
     parser.add_argument('bamfile')
     parser.add_argument('scheme_directory')
