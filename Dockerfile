@@ -20,3 +20,5 @@ RUN /miniconda/bin/mamba env create -f /fieldbioinformatics/environment.yml &&\
     ln -s /usr/bin/samtools /miniconda/envs/artic/bin/samtools
 
 ENV PATH=/miniconda/envs/artic/bin:$PATH
+
+WORKDIR /data
